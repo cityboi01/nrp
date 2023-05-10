@@ -8,10 +8,7 @@ import java.util.List;
 
 public class NurseRosteringProblem {
     public static void main(String argv[]) throws Exception {
-    	String currentDirectory = System.getProperty("user.dir");
-        System.out.println("Current working directory is: " + currentDirectory);
-
-    	
+    
     	//CSV-Erstellung
         FileWriter writer = getFileWriter();
 
