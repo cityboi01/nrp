@@ -476,7 +476,6 @@ public class Constraint {
         List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
         List<Employee> employeeList = helper.getEmployeeList();
         List<Contract> contractList = helper.getContractList();
-        List<String> shiftWithIndices = helper.getShiftWithIndices();
         int punishmentPoints = 0;
         //für alle employee
         for (int j = 0; j < workOnDayPeriode.get(0).size(); j++) {
@@ -487,11 +486,10 @@ public class Constraint {
                 //für alle Tage
                 for (int i = 0; i < workOnDayPeriode.size(); i++) {
                     Day currentDay = helper.getWeekDayOfPeriode(i);
-                    int nightShiftIndex = shiftWithIndices.indexOf("N");
                     if (weekendDefinition.get(0) == currentDay &&
                             workOnDayPeriode.get(i).get(j) == 0 &&
                             i != 0 &&
-                            roster.get(i - 1)[nightShiftIndex][j] == 1) {
+                            roster[j][i-1].equals("N")){   //roster.get(i - 1)[nightShiftIndex][j] == 1) {
                         punishmentPoints++;
                     }
                 }
@@ -558,13 +556,12 @@ public class Constraint {
      */
     private int checkShiftOffRequest() {
         List<ShiftOff> shiftOff = helper.getShiftOffRequestList();
-        List<String> shiftWithIndices = helper.getShiftWithIndices();
         int counter = 0;
         for (ShiftOff s : shiftOff) {
             int dayNumber = helper.getDaysFromStart(s.getDate()) - 1;
-            int index = shiftWithIndices.indexOf(s.getShiftTypeId());
-            int workShiftToday = roster.get(dayNumber)[index][s.getEmployeeId()];
-            if (workShiftToday == 1) {
+            String shift = s.getShiftTypeId(); //int index = shiftWithIndices.indexOf(s.getShiftTypeId());
+            String workShiftToday = roster[s.getEmployeeId()][dayNumber];
+            if (shift.equals(workShiftToday)) {
                 counter += s.getWeight();
             }
         }
