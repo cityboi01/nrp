@@ -1,6 +1,7 @@
 package main;
 
 import Attributes.*;
+import main.RequirementsForDay;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,38 +26,35 @@ public class Constraint {
     public boolean checkHardConst() {
         List<Employee> employeeList = helper.getEmployeeList();
 
-        //Bedarf der Schichten erfüllt?
-        for (int i = 0; i < roster.size(); i++) {
-            for (int j = 0; j < roster.get(0).length; j++) {
-                List<RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(i);
-                int demandOnShift = 0;
-                for (int k = 0; k < employeeList.size(); k++) {
-                    demandOnShift += roster.get(i)[j][k];
-                    //Wenn Employee HeadNurse sein sollte, aber keine ist
-                    if (requirementsForDay.get(j).getShiftID().equals("DH")) {
-                        if (!employeeList.get(k).getSkills().contains(Skill.HEAD_NURSE)) {
-                            if (roster.get(i)[j][k] == 1) {
-                                return false;
-                            }
-                        }
-                    }
+        //Checks if the shift demand is met each day
+        for (int d = 0; d < roster[0].length; d++) {
+        	List<RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(d);
+            int numShiftType = requirementsForDay.size();
+            
+            for(int t=0; t<numShiftType; t++) {
+            	String shiftID = requirementsForDay.get(t).getShiftID();
+            	
+            	int supplyOnShift = 0;
+            	for(int i=0; i< employeeList.size(); i++) {
+            		if(shiftID.equals("DH")) {
+            			if(roster[d][i].equals("DH")) {
+            				if(!employeeList.get(i).getSkills().contains(Skill.HEAD_NURSE)) {
+                				return false;
+                			}
+            				else {
+            					supplyOnShift++;
+            				}
+	            		}
+            		}
+            		else {
+	            		if(roster[d][i].equals(shiftID)) {
+	            			supplyOnShift++;
+	            		}
+            		}
                 }
-                //Wenn Bedarf der Schicht ungleich der Vorgabe ist
-                if (demandOnShift != requirementsForDay.get(j).getDemand()) {
-                    return false;
-                }
-            }
-        }
-        //Ein Employee nur eine Schicht am Tag?
-        for (int i = 0; i < roster.size(); i++) {
-            for (int k = 0; k < employeeList.size(); k++) {
-                int employeeWorkAtOneDay = 0;
-                for (int j = 0; j < roster.get(0).length; j++) {
-                    employeeWorkAtOneDay += roster.get(i)[j][k];
-                }
-                if (employeeWorkAtOneDay > 1) {
-                    return false;
-                }
+            	if(supplyOnShift < requirementsForDay.get(d).getDemand()) {
+            		return false;
+            	}	
             }
         }
         return true;
