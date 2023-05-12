@@ -1,4 +1,4 @@
-package Helper;
+package main;
 
 import Attributes.*;
 
@@ -11,9 +11,9 @@ import java.util.stream.Collectors;
 
 public class Helper {
     private SchedulingPeriod schedulingPeriod;
-    private List<int[][]> roster;
+    private String[][] roster;
 
-    public Helper(SchedulingPeriod schedulingPeriod, List<int[][]> roster) {
+    public Helper(SchedulingPeriod schedulingPeriod, String[][] roster) {
         this.schedulingPeriod = schedulingPeriod;
         this.roster = roster;
     }
@@ -232,12 +232,12 @@ public class Helper {
 
     public List<List<Integer>> getWorkingList() {
         List<List<Integer>> workOnDayPeriode = new ArrayList<>();
-        for (int i = 0; i < roster.size(); i++) {
+        for (int d = 0; d < roster[0].length; d++) {
             List<Integer> workOnDayList = new ArrayList<>();
             for (int k = 0; k < getEmployeeList().size(); k++) {
                 int workOnDay = 0;
-                for (int j = 0; j < roster.get(0).length; j++) {
-                    workOnDay += roster.get(i)[j][k];
+                if(roster[k][d] != null ) {
+                	workOnDay = 1;
                 }
                 workOnDayList.add(workOnDay);
             }
@@ -259,26 +259,7 @@ public class Helper {
         return getWeekDay(c.get(Calendar.DAY_OF_WEEK));
     }
 
-    /**
-     * Gibt die Schicht zurück an dem der Employee für den Tag x arbeitet
-     *
-     * @param day      Tag
-     * @param employee Employee
-     * @return Schicht als String
-     */
-    public String getShiftOfDay(int day, int employee) {
-        int[][] currentDay = roster.get(day);
-        int shiftId = 99;
-        for (int i = 0; i < currentDay.length; i++) {
-            if (currentDay[i][employee] == 1) {
-                shiftId = i;
-            }
-        }
-        if (shiftId == 99) {
-            return "None";
-        }
-        return getShiftWithIndices().get(shiftId);
-    }
+
     
     public int getEntryAijd(int i, int j, int d) {
     	String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');

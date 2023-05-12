@@ -1,5 +1,7 @@
 import Attributes.*;
 import Helper.*;
+import main.InitializeSolution;
+import main.Solution;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -24,7 +26,15 @@ public class TwoPhaseNRP {
         XMLParser xmlParser = new XMLParser(fileName);
         SchedulingPeriod schedulingPeriod = xmlParser.parseXML();
 		
+        Solution inital = getInitialSolution(schedulingPeriod);
         
+        String[][] roster = inital.getRoster();
+        for(int i=0; i<roster.length; i++) {
+        	for(int d=0; d<roster[0].length; d++) {
+        		System.out.print(roster[i][d] + "	");
+        	}
+        	System.out.println();
+        }  
 	}
 	
 	
@@ -59,12 +69,10 @@ public class TwoPhaseNRP {
 	
 	private static Solution getInitialSolution(SchedulingPeriod schedulingPeriod) throws Exception {
         //Initialization
-        InitialSolution initialSolution = new InitialSolution(schedulingPeriod);
-        List<int[][]> initialRoster = initialSolution.createSolution();
-
-        //Check the constraints for the initialization
-        Constraint constraint = new Constraint(schedulingPeriod, initialRoster);
-        return new Solution(initialRoster, constraint.calcRosterScore());
+        InitializeSolution initialSolution = new InitializeSolution(schedulingPeriod);
+        String[][] initialRoster = initialSolution.createSolutionWorkRest();
+        
+        return new Solution(initialRoster, 0);
     }
 	
 }

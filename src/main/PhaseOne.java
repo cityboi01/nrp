@@ -1,8 +1,10 @@
-package Helper;
+package main;
 
 import Attributes.Employee;
 import Attributes.SchedulingPeriod;
 import Attributes.Skill;
+import Helper.Helper;
+import Helper.Solution;
 
 import java.util.List;
 import java.util.Random;
