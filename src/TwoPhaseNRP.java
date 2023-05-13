@@ -1,7 +1,5 @@
 import Attributes.*;
-import Helper.*;
-import main.InitializeSolution;
-import main.Solution;
+import main.*;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -14,19 +12,20 @@ public class TwoPhaseNRP {
 	
 	public void hello() {
 		helper = new Helper(schedulingPeriod, null);
-		
-        List<Employee> employeeList = helper.getEmployeeList();
-        
 	}
 	
 	public static void main(String argv[]) throws Exception {
 		
 		//Read the XML file
-        String fileName = "long01";
+        String fileName = "sprint01";
         XMLParser xmlParser = new XMLParser(fileName);
         SchedulingPeriod schedulingPeriod = xmlParser.parseXML();
 		
         Solution inital = getInitialSolution(schedulingPeriod);
+        
+        Constraint constraint = new Constraint(schedulingPeriod, inital.getRoster());
+        
+        System.out.println("Penalty: " + constraint.calcRosterScorePhaseOne());
         
         String[][] roster = inital.getRoster();
         for(int i=0; i<roster.length; i++) {

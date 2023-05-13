@@ -1,8 +1,6 @@
 package main;
 
 import Attributes.*;
-import main.RequirementsForDay;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -87,6 +85,21 @@ public class Constraint {
         return punishmentPoints;
     }
 
+    public int calcRosterScorePhaseOne() throws Exception {
+        int punishmentPoints = 0;
+        
+        punishmentPoints += checkNumbAssigment();
+        punishmentPoints += checkMaxConsecutiveWorkingDays();
+        punishmentPoints += checkMinConsecutiveWorkingDays();
+        punishmentPoints += checkMaxConsecutiveFreeDays();
+        punishmentPoints += checkMinConsecutiveFreeDays();
+        punishmentPoints += checkWeekendConstraints();
+        punishmentPoints += checkCompleteWeekends();
+        punishmentPoints += checkDayOffRequest();
+
+        return punishmentPoints;
+    }
+    
     /**
      * Prüft die aufeinanderfolgende Arbeitstage gegen die im Vertrag vereinbarte maximalgröße.
      * Annahme: Für jeden einzelnen Tag, wird ein weiterer Strafpunkt verteilt
@@ -614,16 +627,19 @@ public class Constraint {
 
         //List: numbOfShiftInPeriod Number of Workingdays per Nurse per Period
         int employeeSize = helper.getEmployeeList().size();
-        int shiftSize = helper.getShiftList().size();
         List<Integer> numbOfShiftInPeriod = new ArrayList<>(Collections.nCopies(employeeSize, 0));
-        for (int[][] aSolution : roster) {
-            for (int k = 0; k < shiftSize; k++) {
-                for (int l = 0; l < employeeSize; l++) {
-                    int temp = numbOfShiftInPeriod.get(l) + aSolution[k][l];
-                    numbOfShiftInPeriod.set(l, temp);
-                }
-            }
-        }
+        
+    
+    	for (int i = 0; i < employeeSize; i++) {
+    		int temp = 0;
+    		for(int d=0; d<roster[0].length; d++) {
+    			if(roster[i][d] != null) {
+    				temp++;
+    			}
+    		}
+    		numbOfShiftInPeriod.set(i, temp);
+    	}
+        
         //Liste der Mitarbeiter mit der Differenz (Restriktionsverstoß) TODO: evtl. umbenennen
         List<Integer> numbOfDiffDays = new ArrayList<>();
         for (int i = 0; i < numbOfShiftInPeriod.size(); i++) {
