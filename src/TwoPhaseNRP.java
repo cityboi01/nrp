@@ -21,11 +21,28 @@ public class TwoPhaseNRP {
         XMLParser xmlParser = new XMLParser(fileName);
         SchedulingPeriod schedulingPeriod = xmlParser.parseXML();
 		
+        /*int best = 99999;
+        for(int i=0; i<1000000; i++) {
+        	
+        	Solution inital = getInitialSolution(schedulingPeriod);
+            
+            Constraint constraint = new Constraint(schedulingPeriod, inital.getRoster());
+            
+            if (best > constraint.calcRosterScorePhaseOne()) {
+            	best = constraint.calcRosterScorePhaseOne();
+            }  
+        }
+        System.out.println("Penalty: " + best); */
+        
         Solution inital = getInitialSolution(schedulingPeriod);
+        ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, inital.getRoster());
         
-        Constraint constraint = new Constraint(schedulingPeriod, inital.getRoster());
-        
-        System.out.println("Penalty: " + constraint.calcRosterScorePhaseOne());
+        int numberViolations = 0;
+        for(int i=0; i<inital.getRoster().length; i++) {
+        	System.out.println("violations " + i + ": " + constraintChecker.calcViolations(i));
+        	numberViolations += constraintChecker.calcViolations(i);
+        }
+        System.out.println("violations: " + numberViolations);
         
         String[][] roster = inital.getRoster();
         for(int i=0; i<roster.length; i++) {
@@ -33,7 +50,7 @@ public class TwoPhaseNRP {
         		System.out.print(roster[i][d] + "	");
         	}
         	System.out.println();
-        }  
+        } 
 	}
 	
 	
