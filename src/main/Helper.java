@@ -263,7 +263,7 @@ public class Helper {
     
     public int getEntryAijd(int i, int j, int d) {
     	String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
-		return Character.getNumericValue(bitString.charAt(d-1));
+		return Character.getNumericValue(bitString.charAt(d));
     }
     
     private Skill getSkill(int skill) {
