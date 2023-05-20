@@ -1,18 +1,12 @@
 import Attributes.*;
-import Helper.RequirementsForDay;
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
 import main.*;
-
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import ilog.cplex.*;
-import ilog.concert.*;
 
 public class TwoPhaseNRP {
 	private SchedulingPeriod schedulingPeriod;
@@ -28,48 +22,29 @@ public class TwoPhaseNRP {
         String fileName = "sprint01";
         XMLParser xmlParser = new XMLParser(fileName);
         SchedulingPeriod schedulingPeriod = xmlParser.parseXML();
-		
-        /*int best = 99999;
-        for(int i=0; i<1000000; i++) {
-        	
-        	Solution inital = getInitialSolution(schedulingPeriod);
-            
-            Constraint constraint = new Constraint(schedulingPeriod, inital.getRoster());
-            
-            if (best > constraint.calcRosterScorePhaseOne()) {
-            	best = constraint.calcRosterScorePhaseOne();
-            }  
-        }
-        System.out.println("Penalty: " + best); */
         
         Solution initial = getInitialSolution(schedulingPeriod);
         ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initial.getRoster());
         
         int numberViolations = 0;
         for(int i=0; i<initial.getRoster().length; i++) {
-        	System.out.println("violations " + i + ": " + constraintChecker.calcViolations(i));
         	numberViolations += constraintChecker.calcViolations(i);
         }
         System.out.println("violations: " + numberViolations);
         
         String[][] roster = initial.getRoster();
-        for(int i=0; i<roster.length; i++) {
+        /*for(int i=0; i<roster.length; i++) {
         	for(int d=0; d<roster[0].length; d++) {
         		System.out.print(roster[i][d] + "	");
         	}
         	System.out.println();
-        } 
+        }*/
         
-        int[][] costs = createMatrixCosts(initial, 0, schedulingPeriod);
-        for(int i=0; i<costs.length; i++) {
-        	for(int j=0; j<costs[0].length; j++) {
-        		System.out.print(costs[i][j] + "	");
-        	}
-        	System.out.println();
-        } 
+        String[][] rosterPhase1 = solve(roster.length, createMatrixCosts(initial, 0, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, roster), demand(schedulingPeriod, roster), roster, 0);
+        rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 7, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 7);
+        rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 14, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 14);
+        rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 21, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 21);
         
-        
-        int[][] rosterPhase1 = solve(roster.length, createMatrixCosts(initial, 0, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, roster), demand(schedulingPeriod, roster));
         for(int i=0; i<rosterPhase1.length; i++) {
         	for(int d=0; d<rosterPhase1[0].length; d++) {
         		System.out.print(rosterPhase1[i][d] + "	");
@@ -79,9 +54,8 @@ public class TwoPhaseNRP {
 	}
 	
 	
-	public static int[][] solve(int numNurses, int[][] costs, int[][][] matrixNoType, int[] demand) {
-		int[][] nurseAssignmentILP = new int[numNurses][128];
-
+	public static String[][] solve(int numNurses, int[][] costs, int[][][] matrixNoType, int[] demand, String[][] roster, int startDay) {
+		
 		try {
 		// define a new cplex object
 		IloCplex cplex = new IloCplex();
@@ -132,9 +106,19 @@ public class TwoPhaseNRP {
 		System.out.println("Minimum cost " + minimumCost);
 
 
-		for (int i = 0; i < numNurses; i++) {
-			for(int j = 0; j < 128; j++) {
-				nurseAssignmentILP[i][j] = (int) cplex.getValue(nurseAssignment[i][j]); 
+		for(int i=0; i<numNurses; i++) {
+			for(int j=0; j<128; j++) {	
+				if(cplex.getValue(nurseAssignment[i][j]) == 1) {
+					String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
+					for(int d=0; d<7; d++) {
+						if(Character.getNumericValue(bitString.charAt(d)) == 0) {
+							roster[i][startDay + d] = null;
+						}
+						else {
+							roster[i][startDay + d] = "W";
+						}
+					}
+				}
 			}
 		}
 		
@@ -144,9 +128,7 @@ public class TwoPhaseNRP {
 		} catch (IloException exc) {
 			exc.printStackTrace();
 		}
-		
-		return nurseAssignmentILP;	 			
-
+		return roster;	 			
 	}
 	
 	
