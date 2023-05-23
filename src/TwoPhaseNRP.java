@@ -19,7 +19,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 		
 		//Read the XML file
-        String fileName = "sprint01";
+        String fileName = "medium01";
         XMLParser xmlParser = new XMLParser(fileName);
         SchedulingPeriod schedulingPeriod = xmlParser.parseXML();
         
@@ -44,6 +44,8 @@ public class TwoPhaseNRP {
         rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 7, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 7);
         rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 14, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 14);
         rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 21, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 21);
+
+        
         
         for(int i=0; i<rosterPhase1.length; i++) {
         	for(int d=0; d<rosterPhase1[0].length; d++) {
