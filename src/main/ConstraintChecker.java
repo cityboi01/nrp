@@ -53,7 +53,7 @@ public class ConstraintChecker {
         return true;
     }
     
-    public int calcViolations(int employeeID) throws Exception {
+    public int calcViolationsPhase1(int employeeID) throws Exception {
         int punishmentPoints = 0;
         punishmentPoints += checkMaxConsecutiveWorkingDays(employeeID);
         punishmentPoints += checkMinConsecutiveWorkingDays(employeeID);
@@ -63,11 +63,23 @@ public class ConstraintChecker {
         punishmentPoints += checkCompleteWeekends(employeeID);
         punishmentPoints += checkNumbAssigment(employeeID);
         punishmentPoints += checkDayOffRequest(employeeID);
+        punishmentPoints += checkUnwantedPatternDay(employeeID);
         
         //punishmentPoints = checkMinConsecutiveWorkingDays(employeeID);
  
         return punishmentPoints;
     }
+    
+    public int calcViolationsPhase2(int employeeID) throws Exception {
+        int punishmentPoints = 0;
+        punishmentPoints += checkShiftOffRequest(employeeID);
+        punishmentPoints += checkIdenticalShiftTypesDuringWeekend(employeeID);
+        punishmentPoints += checkNoNightShiftBeforeFreeWeekend(employeeID);
+        punishmentPoints += checkUnwantedPatternShift(employeeID);
+        
+        return punishmentPoints;
+    }
+
 
     
     private int checkMaxConsecutiveWorkingDays(int employeeID) {
@@ -432,6 +444,164 @@ public class ConstraintChecker {
         }
         return counter;
     }
+    
+    private int checkUnwantedPatternDay(int employeeID) {
+        List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
+        Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
+        Contract c = (Contract) schedulingPeriod.getContracts().get(e.getContractId());
+        List<Pattern> patternList = helper.getPatternList();
+        int punishmentPoints = 0;
+        List<Integer> unwantedPatterns = c.getUnwantedPatterns();
+
+        for (int i = 0; i < workOnDayPeriode.size(); i++) {
+            String shift = roster[employeeID][i]; 
+        	Day day = helper.getWeekDayOfPeriode(i);
+            for (int k : unwantedPatterns) {
+                boolean pattern_ok = false;
+                Pattern pattern = patternList.get(k);
+                List<PatternEntry> patternEntry = pattern.getPatternEntryList();
+                PatternEntry trigger = patternEntry.get(0);
+                if (((trigger.getShiftType().equals("Any") && shift != null) || ( trigger.getShiftType().equals("None") && shift != null)) && (trigger.getDay() == day)) {
+                    for (int l = 1; l < patternEntry.size(); l++) {
+                    	//if the pattern can still fit in the remaining days of the schedule
+                        if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
+                            PatternEntry currentEntry = patternEntry.get(l);
+                            String shift2 = roster[employeeID][i+l];
+                            Day day2 = helper.getWeekDayOfPeriode(i + l);
+                            if (((currentEntry.getShiftType().equals("Any") && shift2 != null) || ( trigger.getShiftType().equals("None") && shift2 != null)) &&
+                                    (currentEntry.getDay() == day2)) {
+                                pattern_ok = true;
+                            } else {
+                                pattern_ok = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (pattern_ok) {
+                        punishmentPoints++;
+                    }
+                }
+            }
+        }
+        return punishmentPoints;
+    }
+    
+    private int checkUnwantedPatternShift(int employeeID) {
+        List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
+        Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
+        Contract c = (Contract) schedulingPeriod.getContracts().get(e.getContractId());
+        List<Pattern> patternList = helper.getPatternList();
+        int punishmentPoints = 0;
+        List<Integer> unwantedPatterns = c.getUnwantedPatterns();
+
+        for (int i = 0; i < workOnDayPeriode.size(); i++) {
+            String shift = roster[employeeID][i]; 
+            Day day = helper.getWeekDayOfPeriode(i);
+            for (int k : unwantedPatterns) {
+                boolean pattern_ok = false;
+                Pattern pattern = patternList.get(k);
+                List<PatternEntry> patternEntry = pattern.getPatternEntryList();
+                PatternEntry trigger = patternEntry.get(0);
+                if (trigger.getShiftType().equals(shift) &&
+                        (trigger.getDay() == Day.Any || trigger.getDay() == day)) {
+                    for (int l = 1; l < patternEntry.size(); l++) {
+                        if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
+                            PatternEntry currentEntry = patternEntry.get(l);
+                            String shift2 = roster[employeeID][i+l]; 
+                            Day day2 = helper.getWeekDayOfPeriode(i + l);
+                            if (( currentEntry.getShiftType().equals(shift2)) &&
+                                    (currentEntry.getDay() == Day.Any || currentEntry.getDay() == day2)) {
+                                pattern_ok = true;
+                            } else {
+                                pattern_ok = false;
+                                break;
+                            }
+                        }
+                    }
+                    if (pattern_ok) {
+                        punishmentPoints++;
+                    }
+                }
+            }
+        }
+        return punishmentPoints;
+    }
+    
+    private int checkShiftOffRequest(int employeeID) {
+        List<ShiftOff> shiftOff = helper.getShiftOffRequestList();
+        int counter = 0;
+        for (ShiftOff s : shiftOff) {
+            int dayNumber = helper.getDaysFromStart(s.getDate()) - 1;
+            if(s.getEmployeeId() == employeeID) {
+		        String shift = s.getShiftTypeId(); //int index = shiftWithIndices.indexOf(s.getShiftTypeId());
+		        String workShiftToday = roster[employeeID][dayNumber];
+	            if (shift.equals(workShiftToday)) {
+	                counter += s.getWeight();
+	            }
+            }
+        }
+        return counter;
+    }
+    
+    private int checkIdenticalShiftTypesDuringWeekend(int employeeID) {
+        List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
+        Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
+        Contract c = (Contract) schedulingPeriod.getContracts().get(e.getContractId());
+        int punishmentPoints = 0;
+        
+        List<Day> weekendDefinition = c.getWeekendDefinition();
+        if (c.isIdenticalShiftTypesDuringWeekend()) {
+            for (int i = 0; i < workOnDayPeriode.size(); i++) {
+                Day currentDay = helper.getWeekDayOfPeriode(i);
+                if (weekendDefinition.contains(currentDay)) {
+                    String currentShift = roster[employeeID][i];
+                    int indexOfWeekendDefinition = weekendDefinition.indexOf(currentDay);
+                    if (workOnDayPeriode.size() > i + weekendDefinition.size() - 1) {
+                        for (int k = 0; k < weekendDefinition.size() - indexOfWeekendDefinition; k++) {
+                            if (!currentShift.equals(roster[employeeID][k+i])) { 
+                                punishmentPoints++;
+                            }
+                        }
+                        i += weekendDefinition.size() - indexOfWeekendDefinition - 1;
+                    } else {
+                        // when not within the period anymore
+                        for (int k = 0; k < workOnDayPeriode.size() - i; k++) {
+                            if (workOnDayPeriode.get(i + k).get(employeeID) == 1) {
+                                if (!currentShift.equals(roster[employeeID][k+i])) {
+                                    punishmentPoints++;
+                                }
+                            }
+                        }
+                        i += weekendDefinition.size() - indexOfWeekendDefinition - 1;
+                    }
+                }
+            }
+        }
+        
+        return punishmentPoints;
+    }
+    
+    private int checkNoNightShiftBeforeFreeWeekend(int employeeID) {
+        List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
+        Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
+        Contract c = (Contract) schedulingPeriod.getContracts().get(e.getContractId());
+        int punishmentPoints = 0;
+        
+        List<Day> weekendDefinition = c.getWeekendDefinition();
+        if (c.isNoNightShiftBeforeFreeWeekend()) {
+            for (int i = 0; i < workOnDayPeriode.size(); i++) {
+                Day currentDay = helper.getWeekDayOfPeriode(i);
+                if (weekendDefinition.get(0) == currentDay &&
+                        workOnDayPeriode.get(i).get(employeeID) == 0 &&
+                        i != 0 &&
+                        roster[employeeID][i-1].equals("N")){
+                    punishmentPoints++;
+                }
+            }
+        }
+        return punishmentPoints;
+    }
+
     
     private int worksToday(int employeeID, int dayNumber) throws Exception {
     	int worksToday = 0;

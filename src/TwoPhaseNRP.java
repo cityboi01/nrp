@@ -26,36 +26,29 @@ public class TwoPhaseNRP {
         String fileName = "medium_late02";
         TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 
-        Solution initalSol = instance.initial;
+        Solution initialSol = instance.initial;
         
-        ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initalSol.getRoster());
-        
+        ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initialSol.getRoster());
         int numberViolations = 0;
-        for(int i=0; i<initalSol.getRoster().length; i++) {
-        	numberViolations += constraintChecker.calcViolations(i);
+        for(int i=0; i<initialSol.getRoster().length; i++) {
+        	numberViolations += constraintChecker.calcViolationsPhase1(i);
         }
+        
         System.out.println("violations: " + numberViolations);
         
-        String[][] roster = initalSol.getRoster();
-        /*for(int i=0; i<roster.length; i++) {
-        	for(int d=0; d<roster[0].length; d++) {
-        		System.out.print(roster[i][d] + "	");
-        	}
-        	System.out.println();
-        }*/
+        String[][] roster = initialSol.getRoster();
         
-        String[][] rosterPhase1 = instance.solve(instance.createMatrixCosts(initalSol.getRoster(), 0), instance.createMatrixNoType(roster), roster, 0);
-        rosterPhase1 = instance.solve(instance.createMatrixCosts(rosterPhase1, 7), instance.createMatrixNoType(rosterPhase1), rosterPhase1, 7);
-        rosterPhase1 = instance.solve(instance.createMatrixCosts(rosterPhase1, 14), instance.createMatrixNoType(rosterPhase1), rosterPhase1, 14);
-        rosterPhase1 = instance.solve(instance.createMatrixCosts(rosterPhase1, 21), instance.createMatrixNoType(rosterPhase1), rosterPhase1, 21);
-       
-        
+        for(int i=0; i<4; i++) {
+        	roster = instance.solve(instance.createMatrixCosts(roster, i*7), instance.createMatrixNoType(roster), roster, i*7);
+        }
+
+        /*
         for(int i=0; i<rosterPhase1.length; i++) {
         	for(int d=0; d<rosterPhase1[0].length; d++) {
         		System.out.print(rosterPhase1[i][d] + "	");
         	}
         	System.out.println();
-        } 
+        }*/ 
 	}
 	
 	
@@ -154,7 +147,7 @@ public class TwoPhaseNRP {
 				}
 		        ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initialRoster);
 		        try {
-					costMatrix[i][j] = constraintChecker.calcViolations(i);
+					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(i);
 				} catch (Exception e) {
 				}
 			}
