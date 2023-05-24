@@ -23,7 +23,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 		
 		//Read the XML file
-        String fileName = "medium_late02";
+        String fileName = "sprint01";
         TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 
         Solution initialSol = instance.initial;
@@ -38,10 +38,13 @@ public class TwoPhaseNRP {
         
         String[][] roster = initialSol.getRoster();
         
-        for(int i=0; i<4; i++) {
-        	roster = instance.solve(instance.createMatrixCosts(roster, i*7), instance.createMatrixNoType(roster), roster, i*7);
-        }
-
+        for(int j=0; j<5; j++) {
+		    for(int i=0; i<4; i++) {
+		    	roster = instance.solve(instance.createMatrixCosts(roster, i*7), instance.createMatrixNoType(roster), roster, i*7);
+		    }
+        	System.out.println("another loop through the month");
+		}
+        
         /*
         for(int i=0; i<rosterPhase1.length; i++) {
         	for(int d=0; d<rosterPhase1[0].length; d++) {
