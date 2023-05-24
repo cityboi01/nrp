@@ -5,34 +5,38 @@ import ilog.concert.IloNumVar;
 import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
 import main.*;
+
+import java.io.FileNotFoundException;
+import java.text.ParseException;
 import java.util.List;
 import ilog.cplex.*;
 
 public class TwoPhaseNRP {
-	private SchedulingPeriod schedulingPeriod;
-	private Helper helper;
-	
-	public void hello() {
-		helper = new Helper(schedulingPeriod, null);
-	}
+	SchedulingPeriod schedulingPeriod;
+    Helper helper;
+	int numNurses;
+	int numDays;
+	int[] dailyDemand;
+	int numTypes;
+	Solution initial;
 	
 	public static void main(String argv[]) throws Exception {
 		
 		//Read the XML file
-        String fileName = "medium01";
-        XMLParser xmlParser = new XMLParser(fileName);
-        SchedulingPeriod schedulingPeriod = xmlParser.parseXML();
+        String fileName = "medium_late02";
+        TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
+
+        Solution initalSol = instance.initial;
         
-        Solution initial = getInitialSolution(schedulingPeriod);
-        ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initial.getRoster());
+        ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initalSol.getRoster());
         
         int numberViolations = 0;
-        for(int i=0; i<initial.getRoster().length; i++) {
+        for(int i=0; i<initalSol.getRoster().length; i++) {
         	numberViolations += constraintChecker.calcViolations(i);
         }
         System.out.println("violations: " + numberViolations);
         
-        String[][] roster = initial.getRoster();
+        String[][] roster = initalSol.getRoster();
         /*for(int i=0; i<roster.length; i++) {
         	for(int d=0; d<roster[0].length; d++) {
         		System.out.print(roster[i][d] + "	");
@@ -40,12 +44,11 @@ public class TwoPhaseNRP {
         	System.out.println();
         }*/
         
-        String[][] rosterPhase1 = solve(roster.length, createMatrixCosts(initial, 0, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, roster), demand(schedulingPeriod, roster), roster, 0);
-        rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 7, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 7);
-        rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 14, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 14);
-        rosterPhase1 = solve(rosterPhase1.length, createMatrixCosts(initial, 21, schedulingPeriod), createMatrixNoType(roster.length, schedulingPeriod, rosterPhase1), demand(schedulingPeriod, rosterPhase1), rosterPhase1, 21);
-
-        
+        String[][] rosterPhase1 = instance.solve(instance.createMatrixCosts(initalSol.getRoster(), 0), instance.createMatrixNoType(roster), roster, 0);
+        rosterPhase1 = instance.solve(instance.createMatrixCosts(rosterPhase1, 7), instance.createMatrixNoType(rosterPhase1), rosterPhase1, 7);
+        rosterPhase1 = instance.solve(instance.createMatrixCosts(rosterPhase1, 14), instance.createMatrixNoType(rosterPhase1), rosterPhase1, 14);
+        rosterPhase1 = instance.solve(instance.createMatrixCosts(rosterPhase1, 21), instance.createMatrixNoType(rosterPhase1), rosterPhase1, 21);
+       
         
         for(int i=0; i<rosterPhase1.length; i++) {
         	for(int d=0; d<rosterPhase1[0].length; d++) {
@@ -56,7 +59,7 @@ public class TwoPhaseNRP {
 	}
 	
 	
-	public static String[][] solve(int numNurses, int[][] costs, int[][][] matrixNoType, int[] demand, String[][] roster, int startDay) {
+	public String[][] solve(int[][] costs, int[][][] matrixNoType, String[][] roster, int startDay) {
 		
 		try {
 		// define a new cplex object
@@ -97,7 +100,7 @@ public class TwoPhaseNRP {
 					expr2.addTerm(nurseAssignment[i][j], matrixNoType[i][j][d]); 
 				}
 			}
-			cplex.addEq(expr2, demand[d]);
+			cplex.addEq(expr2, dailyDemand[d]);
 		}
 		
 		// solve ILP
@@ -134,23 +137,22 @@ public class TwoPhaseNRP {
 	}
 	
 	
-	public static int[][] createMatrixCosts(Solution initial, int startDay, SchedulingPeriod schedulingPeriod){
+	public int[][] createMatrixCosts(String[][] initialRoster, int startDay){
 		int numNurses = schedulingPeriod.getEmployees().size();
 		int[][] costMatrix = new int[numNurses][128];
-		String[][] roster = initial.getRoster();
 		
 		for(int i=0; i<numNurses; i++) {
 			for(int j=0; j<128; j++) {
 				String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
 				for(int d=0; d<7; d++) {
 					if(Character.getNumericValue(bitString.charAt(d)) == 0) {
-						roster[i][startDay + d] = null;
+						initialRoster[i][startDay + d] = null;
 					}
 					else {
-						roster[i][startDay + d] = "W";
+						initialRoster[i][startDay + d] = "W";
 					}
 				}
-		        ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, roster);
+		        ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initialRoster);
 		        try {
 					costMatrix[i][j] = constraintChecker.calcViolations(i);
 				} catch (Exception e) {
@@ -161,7 +163,7 @@ public class TwoPhaseNRP {
 		return costMatrix;
 	}
 	
-	public static int[][][] createMatrixNoType(int numNurses, SchedulingPeriod schedulingPeriod, String[][] roster) {
+	public int[][][] createMatrixNoType(String[][] roster) {
 		
 		int[][][] PhaseOne = new int [numNurses][128][7];
         Helper helper = new Helper(schedulingPeriod, roster);
@@ -176,7 +178,7 @@ public class TwoPhaseNRP {
 		return PhaseOne;
 	}
 	
-	public static int[][][][] createMatrixType(int numNurses, int numTypes, SchedulingPeriod schedulingPeriod, String[][] roster) {	
+	public int[][][][] createMatrixType(String[][] roster) {	
 		int[][][][] PhaseOne = new int [numNurses][128][numTypes][7];
 		Helper helper = new Helper(schedulingPeriod, roster);
 		
@@ -192,8 +194,7 @@ public class TwoPhaseNRP {
 		return PhaseOne;
 	}
 	
-	public static int[] demand(SchedulingPeriod schedulingPeriod, String[][] roster) {
-		Helper helper = new Helper(schedulingPeriod, roster);
+	public int[] demand() {
         int numDays = helper.getDaysInPeriod();
         int[] dailyDemand = new int[numDays];
         
@@ -207,7 +208,7 @@ public class TwoPhaseNRP {
 		return dailyDemand;
 	}
 	
-	private static Solution getInitialSolution(SchedulingPeriod schedulingPeriod) throws Exception {
+	public Solution getInitialSolution() throws Exception {
         //Initialization
         InitializeSolution initialSolution = new InitializeSolution(schedulingPeriod);
         String[][] initialRoster = initialSolution.createSolutionWorkRest();
@@ -215,4 +216,18 @@ public class TwoPhaseNRP {
         return new Solution(initialRoster, 0);
     }
 	
+	//method to read the input file
+ 	public TwoPhaseNRP(String filename) throws Exception{
+ 		XMLParser xmlParser = new XMLParser(filename);
+ 		this.schedulingPeriod = xmlParser.parseXML();	
+ 		this.numNurses = schedulingPeriod.getEmployees().size();
+ 		this.numTypes = schedulingPeriod.getSkills().size();
+ 		this.helper = new Helper(this.schedulingPeriod, new String[numNurses][numDays]);
+ 		this.numDays = helper.getDaysInPeriod();
+ 		
+ 		this.dailyDemand = demand();
+ 		this.initial = getInitialSolution();
+ 		
+ 	}
+
 }

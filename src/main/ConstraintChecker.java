@@ -65,7 +65,7 @@ public class ConstraintChecker {
         punishmentPoints += checkDayOffRequest(employeeID);
         
         //punishmentPoints = checkMinConsecutiveWorkingDays(employeeID);
-
+ 
         return punishmentPoints;
     }
 
