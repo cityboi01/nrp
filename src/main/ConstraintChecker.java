@@ -79,8 +79,6 @@ public class ConstraintChecker {
         
         return punishmentPoints;
     }
-
-
     
     private int checkMaxConsecutiveWorkingDays(int employeeID) {
     	List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
