@@ -177,11 +177,13 @@ public class TwoPhaseNRP {
 		for(int l=0; l< numDays; l++) {
 			System.out.print(roster[0][l] + "	");
 		}
+		System.out.println();
 		
 		System.out.println("Nurse 1:");
 		for(int l=0; l< numDays; l++) {
 			System.out.print(roster[1][l] + "	");
 		}
+		System.out.println();
 		
 		for(int i=0; i<2; i++) {
 			for(int j=i+1; j<2; j++) {
@@ -199,11 +201,13 @@ public class TwoPhaseNRP {
 				for(int l=0; l< numDays; l++) {
 					System.out.print(roster[0][l] + "	");
 				}
+				System.out.println();
 				
 				System.out.println("Nurse 1:");
 				for(int l=0; l< numDays; l++) {
 					System.out.print(roster[1][l] + "	");
 				}
+				System.out.println();
 				
 			}
 		}
