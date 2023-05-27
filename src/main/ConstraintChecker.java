@@ -393,7 +393,7 @@ public class ConstraintChecker {
             }
         }
         
-        return punishmentPoints;
+        return punishmentPoints*c.getCompleteWeekends_weight();
     }
     
     private int checkNumbAssigment(int employeeID) {
@@ -476,7 +476,7 @@ public class ConstraintChecker {
                         }
                     }
                     if (pattern_ok) {
-                        punishmentPoints++;
+                        punishmentPoints = punishmentPoints + pattern.getWeight();
                     }
                 }
             }
@@ -517,7 +517,7 @@ public class ConstraintChecker {
                         }
                     }
                     if (pattern_ok) {
-                        punishmentPoints++;
+                        punishmentPoints = punishmentPoints + pattern.getWeight();
                     }
                 }
             }
@@ -576,7 +576,7 @@ public class ConstraintChecker {
             }
         }
         
-        return punishmentPoints;
+        return punishmentPoints*c.getIdenticalShiftTypesDuringWeekend_weight();
     }
     
     private int checkNoNightShiftBeforeFreeWeekend(int employeeID) {
@@ -597,7 +597,7 @@ public class ConstraintChecker {
                 }
             }
         }
-        return punishmentPoints;
+        return punishmentPoints*c.getNoNightShiftBeforeFreeWeekend_weight();
     }
 
     
