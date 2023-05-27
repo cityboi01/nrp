@@ -25,9 +25,10 @@ public class TwoPhaseNRP {
 		//Read the XML file
         String fileName = "sprint01";
         TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
-
+        //initializing initial solution
         Solution initialSol = instance.initial;
         
+        //fitness of initial solution
         ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initialSol.getRoster());
         int numberViolations = 0;
         for(int i=0; i<initialSol.getRoster().length; i++) {
@@ -36,17 +37,21 @@ public class TwoPhaseNRP {
         
         System.out.println("violations: " + numberViolations);
         
+        //gets roster of initial solution to work with
         String[][] roster = initialSol.getRoster();
         
+        //Phase 1 weekly ILP optimization 
         for(int j=0; j<1; j++) {
 		    for(int i=0; i<4; i++) {
 		    	roster = instance.solveWorkRestAssignment(roster, i*7);
 		    }
 		}
         
+        //local search function call for Phase 1 LS goes here
         
         //int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, 5);
         
+        //printing for Mel's debugging
         for(int k=0; k<1; k++) { 
             int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, k);
             System.out.println("NumDays " + k);
