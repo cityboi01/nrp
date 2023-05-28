@@ -8,65 +8,69 @@ import main.*;
 
 import java.io.FileNotFoundException;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Random;
+
 import ilog.cplex.*;
 
 public class TwoPhaseNRP {
 	SchedulingPeriod schedulingPeriod;
-    Helper helper;
+	Helper helper;
 	int numNurses;
 	int numDays;
 	int[] dailyDemand;
 	int numTypes;
 	Solution initial;
-	
+	Random random = new Random();
+
 	public static void main(String argv[]) throws Exception {
-		
+
 		//Read the XML file
-        String fileName = "sprint01";
-        TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
-        //initializing initial solution
-        Solution initialSol = instance.initial;
-        
-        //fitness of initial solution
-        ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initialSol.getRoster());
-        int numberViolations = 0;
-        for(int i=0; i<initialSol.getRoster().length; i++) {
-        	numberViolations += constraintChecker.calcViolationsPhase1(i);
-        }
-        
-        System.out.println("violations: " + numberViolations);
-        
-        //gets roster of initial solution to work with
-        String[][] roster = initialSol.getRoster();
-        
-        //Phase 1 weekly ILP optimization 
-        for(int j=0; j<1; j++) {
-		    for(int i=0; i<4; i++) {
-		    	roster = instance.solveWorkRestAssignment(roster, i*7);
-		    }
+		String fileName = "sprint01";
+		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
+		//initializing initial solution
+		Solution initialSol = instance.initial;
+
+		//fitness of initial solution
+		ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initialSol.getRoster());
+		int numberViolations = 0;
+		for(int i=0; i<initialSol.getRoster().length; i++) {
+			numberViolations += constraintChecker.calcViolationsPhase1(i);
 		}
-        
-        //local search function call for Phase 1 LS goes here
-        
-        //int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, 5);
-        
-        //printing for Mel's debugging
-        for(int k=0; k<1; k++) { 
-            int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, k);
-            System.out.println("NumDays " + k);
-        	for(int i=0; i<instance.numNurses; i++) {
-	        	for(int j=0; j<instance.numNurses; j++) {
-	        		System.out.print(costsRecom[i][j] + "	");
-	        		
-	            }
-	        	System.out.println();
-	        }
-        	System.out.println();
-        }
-        
-        
-        /*
+
+		System.out.println("violations: " + numberViolations);
+
+		//gets roster of initial solution to work with
+		String[][] roster = initialSol.getRoster();
+
+		//Phase 1 weekly ILP optimization 
+		for(int j=0; j<1; j++) {
+			for(int i=0; i<4; i++) {
+				roster = instance.solveWorkRestAssignment(roster, i*7);
+			}
+		}
+
+		//local search function call for Phase 1 LS goes here
+
+		//int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, 5);
+
+		//printing for Mel's debugging
+		for(int k=0; k<1; k++) { 
+			int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, k);
+			System.out.println("NumDays " + k);
+			for(int i=0; i<instance.numNurses; i++) {
+				for(int j=0; j<instance.numNurses; j++) {
+					System.out.print(costsRecom[i][j] + "	");
+
+				}
+				System.out.println();
+			}
+			System.out.println();
+		}
+
+
+		/*
         for(int i=0; i<rosterPhase1.length; i++) {
         	for(int d=0; d<rosterPhase1[0].length; d++) {
         		System.out.print(rosterPhase1[i][d] + "	");
@@ -74,99 +78,169 @@ public class TwoPhaseNRP {
         	System.out.println();
         }*/ 
 	}
-	
-	
-	public String[][] solveWorkRestAssignment(String[][] roster, int startDay) {
+
+	public String[][] groupSwapPhase1(String[][] roster){
+
+		// Select two random and non-equal rows
+		int nurse1 = this.random.nextInt(this.numNurses);
+		int nurse2 = this.random.nextInt(this.numNurses);
+		while(nurse1 == nurse2) {
+			nurse2 = this.random.nextInt(this.numNurses);
+		}
+
+		//compute fitness before swap
+		int vioNurse1Before = -1;
+		int vioNurse2Before = -1;;
+		ConstraintChecker constraintCheckerBefore = new ConstraintChecker(this.schedulingPeriod, roster);
+		try {
+			vioNurse1Before = constraintCheckerBefore.calcViolationsPhase1(nurse1);
+			vioNurse2Before = constraintCheckerBefore.calcViolationsPhase1(nurse2);
+		}
+		catch(Exception e) {
+
+		}
+
+
+		// Select a random consecutive range (group) of columns/days; swap ranges includes both start and end
+		int startColIndex = this.random.nextInt(this.numDays);
+		int endColIndex = this.random.nextInt(this.numDays - startColIndex) + startColIndex;
+
+//		//copy the subrosters of the two chosen nurses in case changes need to be undone (no improvement)
+//		String[][] subrosterCopies = new String[2][this.numDays];
+//		subrosterCopies[0] = Arrays.copyOf(roster[nurse1], this.numDays);
+//		subrosterCopies[1] = Arrays.copyOf(roster[nurse2], this.numDays);
+
+		// Swap entries between the two rows within the selected range of columns in the copies
+		for (int col = startColIndex; col <= endColIndex; col++) {
+			String temp = roster[0][col];
+			roster[0][col] = roster[1][col];
+			roster[1][col] = temp;
+		}
+
+		//compute fitness after swap
+		int vioNurse1After = 0;
+		int vioNurse2After = 0;
+		ConstraintChecker constraintCheckerAfter = new ConstraintChecker(this.schedulingPeriod, roster);
+		try {
+			vioNurse1After = constraintCheckerBefore.calcViolationsPhase1(nurse1);
+			vioNurse2After = constraintCheckerBefore.calcViolationsPhase1(nurse2);
+		}
+		catch(Exception e) {
+
+		}
+
+		//compute delta for the two nurses
+		int delta = (vioNurse1After + vioNurse2After) - (vioNurse1Before + vioNurse2Before);
 		
+		//if new solution is equal or better (lower violations), return new roster
+		if (delta <= 0) {
+			return roster;
+		}
+		//if not, undo changes and return old roster
+		else {
+			// Swap entries between the two rows within the selected range of columns in the copies
+			for (int col = startColIndex; col <= endColIndex; col++) {
+				String temp = roster[0][col];
+				roster[0][col] = roster[1][col];
+				roster[1][col] = temp;
+			}
+		}
+
+		return roster;
+	}
+
+
+	public String[][] solveWorkRestAssignment(String[][] roster, int startDay) {
+
 		int[][] costs = createMatrixCosts(roster, startDay);
 		int[][][] matrixNoType = createMatrixNoType(roster);
-		
-		try {
-		// define a new cplex object
-		IloCplex cplex = new IloCplex();
-		cplex.setOut(null);			
-		
-		// declare variable matrix: numNurses times 128 many integer variables with lower bound 0 and upper bound 1		
-		IloNumVar[][] nurseAssignment= new IloNumVar[numNurses][];
-		for(int i=0; i<numNurses; i++) {
-			nurseAssignment[i] = cplex.numVarArray(128, 0 , 1 ,IloNumVarType.Int);				
-		}
 
-		// add objective function that minimizes total costs
-		IloLinearNumExpr obj = cplex.linearNumExpr(); 
-		for (int i = 0; i < numNurses; i++) {
-			for(int j = 0; j < 128; j++) {
-				obj.addTerm(nurseAssignment[i][j],costs[i][j]);
+		try {
+			// define a new cplex object
+			IloCplex cplex = new IloCplex();
+			cplex.setOut(null);			
+
+			// declare variable matrix: numNurses times 128 many integer variables with lower bound 0 and upper bound 1		
+			IloNumVar[][] nurseAssignment= new IloNumVar[numNurses][];
+			for(int i=0; i<numNurses; i++) {
+				nurseAssignment[i] = cplex.numVarArray(128, 0 , 1 ,IloNumVarType.Int);				
 			}
-		}
-		cplex.addMinimize(obj);
-		
-		// add constraints
-		
-		// constraint that ensures at least one work rest pattern is assigned per nurse
-		for(int i=0; i < numNurses; i++){
-			IloLinearNumExpr expr1 = cplex.linearNumExpr();
-			for (int j = 0; j < 128; j++){
-				expr1.addTerm(nurseAssignment[i][j], 1); 
-			}
-			cplex.addEq(expr1, 1);
-		}
-		
-		// constraint that ensures the demand is met each day
-		for(int d = 0; d < 7; d++) {
-			IloLinearNumExpr expr2 = cplex.linearNumExpr();
-			for(int j=0; j < 128; j++){
-				for (int i = 0; i < numNurses; i++){
-					expr2.addTerm(nurseAssignment[i][j], matrixNoType[i][j][d]); 
+
+			// add objective function that minimizes total costs
+			IloLinearNumExpr obj = cplex.linearNumExpr(); 
+			for (int i = 0; i < numNurses; i++) {
+				for(int j = 0; j < 128; j++) {
+					obj.addTerm(nurseAssignment[i][j],costs[i][j]);
 				}
 			}
-			cplex.addEq(expr2, dailyDemand[d]);
-		}
-		
-		// solve ILP
-		cplex.solve();
-		
-		// save optimal value
-		int minimumCost = (int) cplex.getObjValue();
-		System.out.println("Minimum cost " + minimumCost);
+			cplex.addMinimize(obj);
+
+			// add constraints
+
+			// constraint that ensures at least one work rest pattern is assigned per nurse
+			for(int i=0; i < numNurses; i++){
+				IloLinearNumExpr expr1 = cplex.linearNumExpr();
+				for (int j = 0; j < 128; j++){
+					expr1.addTerm(nurseAssignment[i][j], 1); 
+				}
+				cplex.addEq(expr1, 1);
+			}
+
+			// constraint that ensures the demand is met each day
+			for(int d = 0; d < 7; d++) {
+				IloLinearNumExpr expr2 = cplex.linearNumExpr();
+				for(int j=0; j < 128; j++){
+					for (int i = 0; i < numNurses; i++){
+						expr2.addTerm(nurseAssignment[i][j], matrixNoType[i][j][d]); 
+					}
+				}
+				cplex.addEq(expr2, dailyDemand[d]);
+			}
+
+			// solve ILP
+			cplex.solve();
+
+			// save optimal value
+			int minimumCost = (int) cplex.getObjValue();
+			System.out.println("Minimum cost " + minimumCost);
 
 
-		for(int i=0; i<numNurses; i++) {
-			for(int j=0; j<128; j++) {	
-				if(cplex.getValue(nurseAssignment[i][j]) == 1) {
-					String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
-					for(int d=0; d<7; d++) {
-						if(Character.getNumericValue(bitString.charAt(d)) == 0) {
-							roster[i][startDay + d] = null;
-						}
-						else {
-							roster[i][startDay + d] = "W";
+			for(int i=0; i<numNurses; i++) {
+				for(int j=0; j<128; j++) {	
+					if(cplex.getValue(nurseAssignment[i][j]) == 1) {
+						String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
+						for(int d=0; d<7; d++) {
+							if(Character.getNumericValue(bitString.charAt(d)) == 0) {
+								roster[i][startDay + d] = null;
+							}
+							else {
+								roster[i][startDay + d] = "W";
+							}
 						}
 					}
 				}
 			}
-		}
-		
-		// close cplex object      
-		cplex.close(); 	
-		
+
+			// close cplex object      
+			cplex.close(); 	
+
 		} catch (IloException exc) {
 			exc.printStackTrace();
 		}
 		return roster;	 			
 	}
-	
+
 	public String[][] singleCutLS(String[][] roster, int k){
-		 
-		
+
+
 		return roster;
 	}
-	
-	
+
+
 	public int[][] createMatrixNurseRecombinationCosts(String[][] roster, int k){
 		String[][] extraRoster = new String[numNurses][numDays];
 		int[][] costMatrix = new int[numNurses][numNurses];
-		
+
 		ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, roster);
 
 		for(int i=0; i<numNurses; i++) {
@@ -177,20 +251,20 @@ public class TwoPhaseNRP {
 			} catch (Exception e) {
 			}
 		}
-		
+
 		System.out.println("Nurse 0:");
 		for(int l=0; l< numDays; l++) {
 			System.out.print(roster[0][l] + "	");
 		}
-		
+
 		System.out.println("Nurse 1:");
 		for(int l=0; l< numDays; l++) {
 			System.out.print(roster[1][l] + "	");
 		}
-		
+
 		for(int i=0; i<2; i++) {
 			for(int j=i+1; j<2; j++) {
-				
+
 				for(int l=0; l< k; l++) {
 					extraRoster[0][l] = roster[i][l];
 					extraRoster[1][l] = roster[j][l];
@@ -199,24 +273,24 @@ public class TwoPhaseNRP {
 					extraRoster[0][l] = roster[j][l];
 					extraRoster[1][l] = roster[i][l];
 				}
-				
+
 				System.out.println("Nurse 0:");
 				for(int l=0; l< numDays; l++) {
 					System.out.print(roster[0][l] + "	");
 				}
-				
+
 				System.out.println("Nurse 1:");
 				for(int l=0; l< numDays; l++) {
 					System.out.print(roster[1][l] + "	");
 				}
-				
+
 			}
 		}
-		
-		
+
+
 		for(int i=0; i<numNurses; i++) {
 			for(int j=i+1; j<numNurses; j++) {
-				
+
 				for(int l=0; l< k; l++) {
 					extraRoster[0][l] = roster[i][l];
 					extraRoster[1][l] = roster[j][l];
@@ -225,9 +299,9 @@ public class TwoPhaseNRP {
 					extraRoster[0][l] = roster[j][l];
 					extraRoster[1][l] = roster[i][l];
 				}
-				
+
 				constraintChecker = new ConstraintChecker(schedulingPeriod, extraRoster);
-				
+
 				try {
 					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(0);
 					costMatrix[j][i] = constraintChecker.calcViolationsPhase1(1);;
@@ -235,15 +309,15 @@ public class TwoPhaseNRP {
 				}
 			}
 		}
-		
-		
+
+
 		return costMatrix;
 	}
-	
+
 	public int[][] createMatrixCosts(String[][] initialRoster, int startDay){
 		int numNurses = schedulingPeriod.getEmployees().size();
 		int[][] costMatrix = new int[numNurses][128];
-		
+
 		for(int i=0; i<numNurses; i++) {
 			for(int j=0; j<128; j++) {
 				String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
@@ -255,21 +329,21 @@ public class TwoPhaseNRP {
 						initialRoster[i][startDay + d] = "W";
 					}
 				}
-		        ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initialRoster);
-		        try {
+				ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initialRoster);
+				try {
 					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(i);
 				} catch (Exception e) {
 				}
 			}
 		}
-		
+
 		return costMatrix;
 	}
-	
+
 	public int[][][] createMatrixNoType(String[][] roster) {
-		
+
 		int[][][] PhaseOne = new int [numNurses][128][7];
-        Helper helper = new Helper(schedulingPeriod, roster);
+		Helper helper = new Helper(schedulingPeriod, roster);
 
 		for(int i=0; i<numNurses; i++) {
 			for(int j=0; j<128; j++) {
@@ -280,11 +354,11 @@ public class TwoPhaseNRP {
 		}
 		return PhaseOne;
 	}
-	
+
 	public int[][][][] createMatrixType(String[][] roster) {	
 		int[][][][] PhaseOne = new int [numNurses][128][numTypes][7];
 		Helper helper = new Helper(schedulingPeriod, roster);
-		
+
 		for(int i=0; i<numNurses; i++) {
 			for(int j=0; j<128; j++) {
 				for(int t=0; t<numTypes; j++) {
@@ -296,41 +370,41 @@ public class TwoPhaseNRP {
 		}
 		return PhaseOne;
 	}
-	
+
 	public int[] demand() {
-        int numDays = helper.getDaysInPeriod();
-        int[] dailyDemand = new int[numDays];
-        
+		int numDays = helper.getDaysInPeriod();
+		int[] dailyDemand = new int[numDays];
+
 		for(int d=0; d <numDays; d++) {
-    		List<main.RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(d);
-            int numShiftTypes = requirementsForDay.size();
-            for(int t=0; t<numShiftTypes; t++) {
-            	dailyDemand[d] += requirementsForDay.get(t).getDemand();
-            }
+			List<main.RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(d);
+			int numShiftTypes = requirementsForDay.size();
+			for(int t=0; t<numShiftTypes; t++) {
+				dailyDemand[d] += requirementsForDay.get(t).getDemand();
+			}
 		}
 		return dailyDemand;
 	}
-	
+
 	public Solution getInitialSolution() throws Exception {
-        //Initialization
-        InitializeSolution initialSolution = new InitializeSolution(schedulingPeriod);
-        String[][] initialRoster = initialSolution.createSolutionWorkRest();
-        
-        return new Solution(initialRoster, 0);
-    }
-	
+		//Initialization
+		InitializeSolution initialSolution = new InitializeSolution(schedulingPeriod);
+		String[][] initialRoster = initialSolution.createSolutionWorkRest();
+
+		return new Solution(initialRoster, 0);
+	}
+
 	//method to read the input file
- 	public TwoPhaseNRP(String filename) throws Exception{
- 		XMLParser xmlParser = new XMLParser(filename);
- 		this.schedulingPeriod = xmlParser.parseXML();	
- 		this.numNurses = schedulingPeriod.getEmployees().size();
- 		this.numTypes = schedulingPeriod.getSkills().size();
- 		this.helper = new Helper(this.schedulingPeriod, new String[numNurses][numDays]);
- 		this.numDays = helper.getDaysInPeriod();
- 		
- 		this.dailyDemand = demand();
- 		this.initial = getInitialSolution();
- 		
- 	}
+	public TwoPhaseNRP(String filename) throws Exception{
+		XMLParser xmlParser = new XMLParser(filename);
+		this.schedulingPeriod = xmlParser.parseXML();	
+		this.numNurses = schedulingPeriod.getEmployees().size();
+		this.numTypes = schedulingPeriod.getSkills().size();
+		this.helper = new Helper(this.schedulingPeriod, new String[numNurses][numDays]);
+		this.numDays = helper.getDaysInPeriod();
+
+		this.dailyDemand = demand();
+		this.initial = getInitialSolution();
+
+	}
 
 }
