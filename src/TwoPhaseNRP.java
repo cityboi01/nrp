@@ -23,7 +23,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 		
 		//Read the XML file
-        String fileName = "sprint01";
+        String fileName = "sprint_late08";
         TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
         //initializing initial solution
         Solution initialSol = instance.initial;
@@ -32,7 +32,9 @@ public class TwoPhaseNRP {
         ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initialSol.getRoster());
         int numberViolations = 0;
         for(int i=0; i<initialSol.getRoster().length; i++) {
-        	numberViolations += constraintChecker.calcViolationsPhase1(i);
+        	int violations = constraintChecker.calcViolationsPhase1(0);
+        	//System.out.println("violations: " + violations);
+        	numberViolations += violations;
         }
         
         System.out.println("violations: " + numberViolations);
@@ -41,38 +43,19 @@ public class TwoPhaseNRP {
         String[][] roster = initialSol.getRoster();
         
         //Phase 1 weekly ILP optimization 
-        for(int j=0; j<1; j++) {
+        for(int j=0; j<5; j++) {
 		    for(int i=0; i<4; i++) {
 		    	roster = instance.solveWorkRestAssignment(roster, i*7);
 		    }
+		    System.out.println("another cycle ");
 		}
-        
+
         //local search function call for Phase 1 LS goes here
-        
-        //int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, 5);
-        
-        //printing for Mel's debugging
-        for(int k=0; k<1; k++) { 
-            int[][] costsRecom = instance.createMatrixNurseRecombinationCosts(roster, k);
-            System.out.println("NumDays " + k);
-        	for(int i=0; i<instance.numNurses; i++) {
-	        	for(int j=0; j<instance.numNurses; j++) {
-	        		System.out.print(costsRecom[i][j] + "	");
-	        		
-	            }
-	        	System.out.println();
+    	for(int j=0; j<10; j++) {   
+    		for(int i=0; i<28; i++) {
+	        	roster = instance.singleCutLS(roster, i);
 	        }
-        	System.out.println();
-        }
-        
-        
-        /*
-        for(int i=0; i<rosterPhase1.length; i++) {
-        	for(int d=0; d<rosterPhase1[0].length; d++) {
-        		System.out.print(rosterPhase1[i][d] + "	");
-        	}
-        	System.out.println();
-        }*/ 
+    	}
 	}
 	
 	
@@ -133,7 +116,7 @@ public class TwoPhaseNRP {
 
 		for(int i=0; i<numNurses; i++) {
 			for(int j=0; j<128; j++) {	
-				if(cplex.getValue(nurseAssignment[i][j]) == 1) {
+				if((cplex.getValue(nurseAssignment[i][j]) < 1 + 0.00001) && (cplex.getValue(nurseAssignment[i][j]) > 1 - 0.00001)) {
 					String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
 					for(int d=0; d<7; d++) {
 						if(Character.getNumericValue(bitString.charAt(d)) == 0) {
@@ -157,9 +140,75 @@ public class TwoPhaseNRP {
 	}
 	
 	public String[][] singleCutLS(String[][] roster, int k){
-		 
+		int[][] nurseRecombinationCosts = createMatrixNurseRecombinationCosts(roster, k);
+		String[][] newRoster = new String[numNurses][numDays];
 		
-		return roster;
+		try {
+			// define a new cplex object
+			IloCplex cplex = new IloCplex();
+			cplex.setOut(null);			
+			
+			// declare variable matrix: numNurses times numNurses many integer variables with lower bound 0 and upper bound 1		
+			IloNumVar[][] nurseCombination= new IloNumVar[numNurses][];
+			for(int i=0; i<numNurses; i++) {
+				nurseCombination[i] = cplex.numVarArray(numNurses, 0 , 1 ,IloNumVarType.Int);				
+			}
+
+			// add objective function that minimizes total costs
+			IloLinearNumExpr obj = cplex.linearNumExpr(); 
+			for (int i = 0; i < numNurses; i++) {
+				for(int j = 0; j < numNurses; j++) {
+					obj.addTerm(nurseCombination[i][j],nurseRecombinationCosts[i][j]);
+				}
+			}
+			cplex.addMinimize(obj);
+			
+			
+			// constraints that ensure that the partial rosters of nurses are used exactly ones
+			for(int i=0; i < numNurses; i++){
+				IloLinearNumExpr expr1 = cplex.linearNumExpr();
+				for (int j = 0; j < numNurses; j++){
+					expr1.addTerm(nurseCombination[i][j], 1); 
+				}
+				cplex.addEq(expr1, 1);
+			}
+			
+			for(int j=0; j < numNurses; j++){
+				IloLinearNumExpr expr2 = cplex.linearNumExpr();
+				for (int i = 0; i < numNurses; i++){
+					expr2.addTerm(nurseCombination[i][j], 1); 
+				}
+				cplex.addEq(expr2, 1);
+			}
+			
+			// solve ILP
+			cplex.solve();
+			
+			// save optimal value
+			int minimumCost = (int) cplex.getObjValue();
+			System.out.println("New cost " + minimumCost);
+
+			for(int i=0; i<numNurses; i++) {
+				for(int j=0; j<numNurses; j++) {	
+					if((cplex.getValue(nurseCombination[i][j]) < 1 + 0.00001) && (cplex.getValue(nurseCombination[i][j]) > 1 - 0.00001)) {
+		             	
+						for(int l=0; l< k+1; l++) {
+							newRoster[i][l] = roster[i][l];
+						}
+						for(int l=k+1; l< numDays; l++) {
+							newRoster[i][l] = roster[j][l];
+						}
+					}
+				}
+			}
+			
+			// close cplex object      
+			cplex.close(); 	
+			
+			} catch (IloException exc) {
+				exc.printStackTrace();
+			}
+		return newRoster;
 	}
 	
 	
@@ -168,79 +217,28 @@ public class TwoPhaseNRP {
 		int[][] costMatrix = new int[numNurses][numNurses];
 		
 		ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, roster);
-
-		for(int i=0; i<numNurses; i++) {
-			int costNurse;
-			try {
-				costNurse = constraintChecker.calcViolationsPhase1(i);
-				costMatrix[i][i] = costNurse;
-			} catch (Exception e) {
-			}
-		}
-		
-		System.out.println("Nurse 0:");
-		for(int l=0; l< numDays; l++) {
-			System.out.print(roster[0][l] + "	");
-		}
-		System.out.println();
-		
-		System.out.println("Nurse 1:");
-		for(int l=0; l< numDays; l++) {
-			System.out.print(roster[1][l] + "	");
-		}
-		System.out.println();
-		
-		for(int i=0; i<2; i++) {
-			for(int j=i+1; j<2; j++) {
-				
-				for(int l=0; l< k; l++) {
-					extraRoster[0][l] = roster[i][l];
-					extraRoster[1][l] = roster[j][l];
-				}
-				for(int l=k; l< numDays; l++) {
-					extraRoster[0][l] = roster[j][l];
-					extraRoster[1][l] = roster[i][l];
-				}
-				
-				System.out.println("Nurse 0:");
-				for(int l=0; l< numDays; l++) {
-					System.out.print(roster[0][l] + "	");
-				}
-				System.out.println();
-				
-				System.out.println("Nurse 1:");
-				for(int l=0; l< numDays; l++) {
-					System.out.print(roster[1][l] + "	");
-				}
-				System.out.println();
-				
-			}
-		}
-		
 		
 		for(int i=0; i<numNurses; i++) {
-			for(int j=i+1; j<numNurses; j++) {
+			for(int j=i; j<numNurses; j++) {
 				
-				for(int l=0; l< k; l++) {
-					extraRoster[0][l] = roster[i][l];
-					extraRoster[1][l] = roster[j][l];
+				for(int l=0; l< k+1; l++) {
+					extraRoster[i][l] = roster[i][l];
+					extraRoster[j][l] = roster[j][l];
 				}
-				for(int l=k; l< numDays; l++) {
-					extraRoster[0][l] = roster[j][l];
-					extraRoster[1][l] = roster[i][l];
+				for(int l=k+1; l< numDays; l++) {
+					extraRoster[i][l] = roster[j][l];
+					extraRoster[j][l] = roster[i][l];
 				}
-				
 				constraintChecker = new ConstraintChecker(schedulingPeriod, extraRoster);
 				
 				try {
-					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(0);
-					costMatrix[j][i] = constraintChecker.calcViolationsPhase1(1);;
+					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(i);
+					costMatrix[j][i] = constraintChecker.calcViolationsPhase1(j);
 				} catch (Exception e) {
 				}
+				
 			}
-		}
-		
-		
+		}	
 		return costMatrix;
 	}
 	

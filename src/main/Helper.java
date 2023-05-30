@@ -293,6 +293,23 @@ public class Helper {
     	return 0;
     }
     
+    public int getEntryAijtdShift(int i, int j, int t, int d) {
+    	String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
+		int working = Character.getNumericValue(bitString.charAt(d-1));
+    	
+		if(working == 1) {
+			List<Employee> employees = getEmployeeList();
+			Employee employee = employees.get(i);
+			
+			for(int k=0; k<employee.getSkills().size(); k++) {
+				if(employee.getSkills().get(k) == getSkill(t)) {
+					return 1;
+				}
+			}
+		}
+    	return 0;
+    }
+    
     public int getEntryCij(int i, int j) {
     	
     	
