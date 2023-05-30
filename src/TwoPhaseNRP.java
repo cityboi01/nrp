@@ -21,51 +21,44 @@ public class TwoPhaseNRP {
 	int numDays;
 	int[] dailyDemand;
 	int numTypes;
-	Solution initial;
 	Random random = new Random();
+	Solution currentSolution;
 
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
 
-		String fileName = "sprint_late08";
+		String fileName = "sprint08";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
-		Solution initialSol = instance.initial;
-
-		//fitness of initial solution
-		ConstraintChecker constraintChecker = new ConstraintChecker(instance.schedulingPeriod, initialSol.getRoster());
-		int numberViolations = 0;
-		for(int i=0; i<initialSol.getRoster().length; i++) {
-			int violations = constraintChecker.calcViolationsPhase1(0);
-			//System.out.println("violations: " + violations);
-			numberViolations += violations;
-		}
-
-		System.out.println("violations: " + numberViolations);
-
-		//gets roster of initial solution to work with
-		String[][] roster = initialSol.getRoster();
+		instance.currentSolution = instance.getInitialSolution();
 
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<5; j++) {
+		for(int j=0; j<0; j++) {
 			for(int i=0; i<4; i++) {
-				roster = instance.solveWorkRestAssignment(roster, i*7);
+				instance.solveWorkRestAssignment(i*7);
 			}
 			System.out.println("another cycle ");
 		}
 
 		//local search function call for Phase 1 LS goes here
-		for(int j=0; j<10; j++) {   
+		for(int j=0; j<0; j++) {   
 			for(int i=0; i<28; i++) {
-				roster = instance.singleCutLS(roster, i);
+				instance.singleCutLS(i);
 			}
 		}
+		int count = 0;
+		while(count < 50000) {
+			count++;
+			instance.groupSwapPhase1();
+		}
+		System.out.println("Cost after group_swap: " + instance.currentSolution.getScore());
+
 
 	}
 
-	public String[][] groupSwapPhase1(String[][] roster){
-
+	public void groupSwapPhase1(){
+		String[][] roster = this.currentSolution.getRoster();
 		// Select two random and non-equal rows
 		int nurse1 = this.random.nextInt(this.numNurses);
 		int nurse2 = this.random.nextInt(this.numNurses);
@@ -74,19 +67,12 @@ public class TwoPhaseNRP {
 		}
 
 		//compute fitness before swap
-		int vioNurse1Before = -1;
-		int vioNurse2Before = -1;;
-		ConstraintChecker constraintCheckerBefore = new ConstraintChecker(this.schedulingPeriod, roster);
-		try {
-			vioNurse1Before = constraintCheckerBefore.calcViolationsPhase1(nurse1);
-			vioNurse2Before = constraintCheckerBefore.calcViolationsPhase1(nurse2);
-		}
-		catch(Exception e) {
-
-		}
+		int vioNurse1Before = this.currentSolution.getNurseScores()[nurse1];
+		int vioNurse2Before = this.currentSolution.getNurseScores()[nurse2];
+		
 
 
-		// Select a random consecutive range (group) of columns/days; swap ranges includes both start and end
+		// Select a random consecutive range (group) of columns/days; swap ranges includes both start and end (can be equal)
 		int startColIndex = this.random.nextInt(this.numDays);
 		int endColIndex = this.random.nextInt(this.numDays - startColIndex) + startColIndex;
 
@@ -96,10 +82,10 @@ public class TwoPhaseNRP {
 		//		subrosterCopies[1] = Arrays.copyOf(roster[nurse2], this.numDays);
 
 		// Swap entries between the two rows within the selected range of columns in the copies
-		for (int col = startColIndex; col <= endColIndex; col++) {
-			String temp = roster[0][col];
-			roster[0][col] = roster[1][col];
-			roster[1][col] = temp;
+		for (int day = startColIndex; day <= endColIndex; day++) {
+			String temp = roster[nurse1][day];
+			roster[nurse1][day] = roster[nurse2][day];
+			roster[nurse2][day] = temp;
 		}
 
 		//compute fitness after swap
@@ -107,8 +93,8 @@ public class TwoPhaseNRP {
 		int vioNurse2After = 0;
 		ConstraintChecker constraintCheckerAfter = new ConstraintChecker(this.schedulingPeriod, roster);
 		try {
-			vioNurse1After = constraintCheckerBefore.calcViolationsPhase1(nurse1);
-			vioNurse2After = constraintCheckerBefore.calcViolationsPhase1(nurse2);
+			vioNurse1After = constraintCheckerAfter.calcViolationsPhase1(nurse1);
+			vioNurse2After = constraintCheckerAfter.calcViolationsPhase1(nurse2);
 		}
 		catch(Exception e) {
 
@@ -119,24 +105,27 @@ public class TwoPhaseNRP {
 
 		//if new solution is equal or better (lower violations), return new roster
 		if (delta <= 0) {
-			return roster;
+			this.currentSolution.setRoster(roster);
+			this.currentSolution.setScore(this.currentSolution.getScore() + delta);
+			this.currentSolution.setNurseScores(nurse1, vioNurse1After);
+			this.currentSolution.setNurseScores(nurse2, vioNurse2After);
+			return;
 		}
 		//if not, undo changes and return old roster
 		else {
 			// Swap entries between the two rows within the selected range of columns in the copies
-			for (int col = startColIndex; col <= endColIndex; col++) {
-				String temp = roster[0][col];
-				roster[0][col] = roster[1][col];
-				roster[1][col] = temp;
+			for (int day = startColIndex; day <= endColIndex; day++) {
+				String temp = roster[nurse1][day];
+				roster[nurse1][day] = roster[nurse2][day];
+				roster[nurse2][day] = temp;
 			}
 		}
 
-		return roster;
 	}
 
 
-	public String[][] solveWorkRestAssignment(String[][] roster, int startDay) {
-
+	public void solveWorkRestAssignment(int startDay) {
+		String[][] roster = this.currentSolution.getRoster();
 		int[][] costs = createMatrixCosts(roster, startDay);
 		int[][][] matrixNoType = createMatrixNoType(roster);
 
@@ -190,10 +179,12 @@ public class TwoPhaseNRP {
 			System.out.println("Minimum cost " + minimumCost);
 
 
-
+			this.currentSolution.setScore(0);
 			for(int i=0; i<numNurses; i++) {
 				for(int j=0; j<128; j++) {	
-					if((cplex.getValue(nurseAssignment[i][j]) < 1 + 0.00001) && (cplex.getValue(nurseAssignment[i][j]) > 1 - 0.00001)) {
+					if((cplex.getValue(nurseAssignment[i][j]) < 1 + 0.000011) && (cplex.getValue(nurseAssignment[i][j]) > 1 - 0.000011)) {
+						this.currentSolution.setNurseScores(i, costs[i][j]);
+						this.currentSolution.setScore(this.currentSolution.getScore() + costs[i][j]);
 						String bitString = String.format("%7s", Integer.toBinaryString(j)).replace(' ', '0');
 						for(int d=0; d<7; d++) {
 							if(Character.getNumericValue(bitString.charAt(d)) == 0) {
@@ -214,11 +205,11 @@ public class TwoPhaseNRP {
 		} catch (IloException exc) {
 			exc.printStackTrace();
 		}
-		return roster;	 			
+		this.currentSolution.setRoster(roster);	 			
 	}
 
-	public String[][] singleCutLS(String[][] roster, int k){
-
+	public void singleCutLS(int k){
+		String[][] roster = this.currentSolution.getRoster();
 		int[][] nurseRecombinationCosts = createMatrixNurseRecombinationCosts(roster, k);
 		String[][] newRoster = new String[numNurses][numDays];
 
@@ -266,11 +257,13 @@ public class TwoPhaseNRP {
 			// save optimal value
 			int minimumCost = (int) cplex.getObjValue();
 			System.out.println("New cost " + minimumCost);
-
+			
+			this.currentSolution.setScore(0);
 			for(int i=0; i<numNurses; i++) {
 				for(int j=0; j<numNurses; j++) {	
 					if((cplex.getValue(nurseCombination[i][j]) < 1 + 0.00001) && (cplex.getValue(nurseCombination[i][j]) > 1 - 0.00001)) {
-
+						this.currentSolution.setNurseScores(i, nurseRecombinationCosts[i][j]);
+						this.currentSolution.setScore(this.currentSolution.getScore() + nurseRecombinationCosts[i][j]);
 						for(int l=0; l< k+1; l++) {
 							newRoster[i][l] = roster[i][l];
 						}
@@ -287,7 +280,7 @@ public class TwoPhaseNRP {
 		} catch (IloException exc) {
 			exc.printStackTrace();
 		}
-		return newRoster;
+		this.currentSolution.setRoster(newRoster);
 	}
 
 
@@ -398,10 +391,21 @@ public class TwoPhaseNRP {
 
 	public Solution getInitialSolution() throws Exception {
 		//Initialization
-		InitializeSolution initialSolution = new InitializeSolution(schedulingPeriod);
+		InitializeSolution initialSolution = new InitializeSolution(this.schedulingPeriod);
 		String[][] initialRoster = initialSolution.createSolutionWorkRest();
 
-		return new Solution(initialRoster, 0);
+		//fitness of initial solution
+		ConstraintChecker constraintChecker = new ConstraintChecker(this.schedulingPeriod, initialRoster);
+		int numberViolations = 0;
+		int[] nurseViolations = new int[this.numNurses];
+		for(int i=0; i< this.numNurses; i++) {
+			nurseViolations[i] = constraintChecker.calcViolationsPhase1(i);
+			numberViolations += nurseViolations[i];
+		}
+
+		System.out.println("violations: " + numberViolations);
+
+		return new Solution(initialRoster, numberViolations, nurseViolations);
 	}
 
 	//method to read the input file
@@ -414,7 +418,6 @@ public class TwoPhaseNRP {
 		this.numDays = helper.getDaysInPeriod();
 
 		this.dailyDemand = demand();
-		this.initial = getInitialSolution();
 
 	}
 
