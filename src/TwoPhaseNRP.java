@@ -8,6 +8,7 @@ import main.*;
 
 import java.io.FileNotFoundException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
@@ -20,7 +21,7 @@ public class TwoPhaseNRP {
 	int numNurses;
 	int numDays;
 	int[] dailyDemand;
-	int numTypes;
+	int numSkillTypes;
 	Random random = new Random();
 	Solution currentSolution;
 
@@ -28,32 +29,91 @@ public class TwoPhaseNRP {
 
 		//Read the XML file
 
-		String fileName = "sprint08";
+		String fileName = "sprint01";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
 		instance.currentSolution = instance.getInitialSolution();
 
+
+
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<0; j++) {
+		for(int j=0; j<5; j++) {
 			for(int i=0; i<4; i++) {
 				instance.solveWorkRestAssignment(i*7);
 			}
-			System.out.println("another cycle ");
+			System.out.println("Vios after ILP1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 
 		//local search function call for Phase 1 LS goes here
-		for(int j=0; j<0; j++) {   
+		for(int j=0; j<5; j++) {   
 			for(int i=0; i<28; i++) {
 				instance.singleCutLS(i);
 			}
+			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 		int count = 0;
 		while(count < 50000) {
 			count++;
 			instance.groupSwapPhase1();
+			if(count % 1000 == 0) {
+				System.out.println("Vios after " + (count) + " GroupSwaps: " + instance.currentSolution.getScore());
+			}
 		}
-		System.out.println("Cost after group_swap: " + instance.currentSolution.getScore());
+		System.out.println("Cost after Phase1: " + instance.currentSolution.getScore());
 
+		//test randomShiftAssign
+		instance.randomShiftAssign();
+		System.out.println("Shift assign completed.");
+		String[][] rosterPhase1 = instance.currentSolution.getRoster();
+		int cost = 0;
+		ConstraintChecker checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
+		for(int i=0; i<rosterPhase1.length; i++) {
+			for(int d=0; d<rosterPhase1[0].length; d++) {
+				System.out.print(rosterPhase1[i][d] + "	");
+			}
+			cost += checker.calcViolationsPhase2(i);
+			System.out.println();
+		}
+		System.out.println(cost);
+		
+
+
+	}
+
+	public String[][] randomShiftAssign(){
+		String[][] roster = this.currentSolution.getRoster();
+		int numColumns = roster[0].length;
+		int numShiftTypes = this.schedulingPeriod.getShiftTypes().size();
+		String[] shiftTypes = this.helper.getShiftWithIndices().toArray(new String[numShiftTypes]);
+
+		for (int column = 0; column < numColumns; column++) {
+			ArrayList<Integer> indices = new ArrayList<>(roster.length);
+			for (int i = 0; i < roster.length; i++) {
+				indices.add(i);
+			}
+
+			int[] demands = new int[numShiftTypes];
+			for (int i = 0; i < numShiftTypes; i++) {
+				demands[i] = this.helper.getRequirement(shiftTypes[i], column);
+			}
+
+			for (int i = 0; i < numShiftTypes; i++) {
+				String currentShiftType = shiftTypes[i];
+				int currentDemand = demands[i];
+
+				while (currentDemand > 0) {
+					int randomIndex = this.random.nextInt(indices.size());
+					int index = indices.remove(randomIndex);
+
+					if (roster[index][column] == "W") {
+						roster[index][column] = currentShiftType;
+						currentDemand--;
+					}
+				}
+			}
+		}
+
+		return roster;
 
 	}
 
@@ -69,7 +129,7 @@ public class TwoPhaseNRP {
 		//compute fitness before swap
 		int vioNurse1Before = this.currentSolution.getNurseScores()[nurse1];
 		int vioNurse2Before = this.currentSolution.getNurseScores()[nurse2];
-		
+
 
 
 		// Select a random consecutive range (group) of columns/days; swap ranges includes both start and end (can be equal)
@@ -257,7 +317,7 @@ public class TwoPhaseNRP {
 			// save optimal value
 			int minimumCost = (int) cplex.getObjValue();
 			System.out.println("New cost " + minimumCost);
-			
+
 			this.currentSolution.setScore(0);
 			for(int i=0; i<numNurses; i++) {
 				for(int j=0; j<numNurses; j++) {	
@@ -360,12 +420,12 @@ public class TwoPhaseNRP {
 	}
 
 	public int[][][][] createMatrixType(String[][] roster) {	
-		int[][][][] PhaseOne = new int [numNurses][128][numTypes][7];
+		int[][][][] PhaseOne = new int [numNurses][128][numSkillTypes][7];
 		Helper helper = new Helper(schedulingPeriod, roster);
 
 		for(int i=0; i<numNurses; i++) {
 			for(int j=0; j<128; j++) {
-				for(int t=0; t<numTypes; j++) {
+				for(int t=0; t<numSkillTypes; j++) {
 					for(int d=1; d<8; d++) {
 						PhaseOne[i][j][t][d] = helper.getEntryAijtd(i, j, t, d);								
 					}
@@ -413,7 +473,7 @@ public class TwoPhaseNRP {
 		XMLParser xmlParser = new XMLParser(filename);
 		this.schedulingPeriod = xmlParser.parseXML();	
 		this.numNurses = schedulingPeriod.getEmployees().size();
-		this.numTypes = schedulingPeriod.getSkills().size();
+		this.numSkillTypes = schedulingPeriod.getSkills().size();
 		this.helper = new Helper(this.schedulingPeriod, new String[numNurses][numDays]);
 		this.numDays = helper.getDaysInPeriod();
 
