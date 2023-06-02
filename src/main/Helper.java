@@ -310,11 +310,6 @@ public class Helper {
     	return 0;
     }
     
-    public int getEntryCij(int i, int j) {
-    	
-    	
-    	
-    	return 0;
-    }
+   
     
 }

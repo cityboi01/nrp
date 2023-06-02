@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Permutations {
-    public static List<String> generatePermutations(String[] strings, int k) {
+    public List<String> generatePermutations(String[] strings, int k) {
         List<String> permutations = new ArrayList<>();
         backtrack(strings, new StringBuilder(), new boolean[strings.length], k, permutations);
         return permutations;
@@ -29,7 +29,7 @@ public class Permutations {
         }
     }
 
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
         String[] strings = {"A", "B", "C", "D"};
         int k = 2;
 
@@ -37,5 +37,5 @@ public class Permutations {
         for (String permutation : permutations) {
             System.out.println(permutation);
         }
-    }
+    }*/
 }

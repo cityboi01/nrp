@@ -41,14 +41,6 @@ public class TwoPhaseNRP {
         	System.out.println();
 		}
 		
-		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<5; j++) {
-			for(int i=0; i<4; i++) {
-				instance.solveWorkRestAssignment(i*7);
-			}
-			System.out.println("Vios after ILP1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
-		}
-
 		//local search function call for Phase 1 LS goes here
 		for(int j=0; j<0; j++) {   
 			for(int i=0; i<28; i++) {
@@ -57,30 +49,54 @@ public class TwoPhaseNRP {
 			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 		int count = 0;
-		while(count < 30000) {
+		while(count < 0) {
 			count++;
 			instance.groupSwapPhase1();
 			if(count % 1000 == 0) {
 				System.out.println("Vios after " + (count) + " GroupSwaps: " + instance.currentSolution.getScore());
 			}
 		}
+		
+		//Phase 1 weekly ILP optimization 
+		for(int j=0; j<0; j++) {
+			for(int i=0; i<4; i++) {
+				instance.solveWorkRestAssignment(i*7);
+			}
+			System.out.println("Vios after ILP1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
+		}
+		
 		System.out.println("Cost after Phase1: " + instance.currentSolution.getScore());
 
-		//test randomShiftAssign
+		
+		//ArrayList<ArrayList<ArrayList<String>>> combinations = instance.shiftTypeCombinations (0);
 		instance.randomShiftAssign();
+		ArrayList<ArrayList<Integer>> combinationCosts = instance.createMatrixCostsPhase2(instance.currentSolution.getRoster(), 0);
+		
+		for(int i=0; i<instance.numNurses; i++) {
+			for(int d=0; d<combinationCosts.get(i).size(); d++) {
+				
+				System.out.print(combinationCosts.get(i).get(d) + "	");
+				
+        	}
+        	System.out.println();
+		}
+		
+		
+		//test randomShiftAssign 
+		
 		System.out.println("Shift assign completed.");
 		String[][] rosterPhase1 = instance.currentSolution.getRoster();
 		int cost = 0;
 		ConstraintChecker checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
 		for(int i=0; i<rosterPhase1.length; i++) {
 			for(int d=0; d<rosterPhase1[0].length; d++) {
-				//System.out.print(rosterPhase1[i][d] + "	");
+				System.out.print(rosterPhase1[i][d] + "	");
 			}
 			cost += checker.calcViolationsPhase2(i);
-			//System.out.println();
+			System.out.println();
 		}
 		System.out.println(cost);
-
+        
 	}
 
 	public String[][] randomShiftAssign(){
@@ -381,6 +397,28 @@ public class TwoPhaseNRP {
 		return costMatrix;
 	}
 
+	public ArrayList<ArrayList<Integer>> createMatrixCostsPhase2(String[][] initialRoster, int startDay){
+		ArrayList<ArrayList<Integer>> costs = new ArrayList<ArrayList<Integer>>();
+		ArrayList<ArrayList<ArrayList<String>>> combinations = shiftTypeCombinations(startDay);
+		
+		for(int i=0; i<numNurses; i++) {
+			ArrayList<Integer> list = new ArrayList<Integer>();
+			for(int j=0; j<combinations.get(i).size(); j++) {
+				for(int d=0; d<3; d++) {
+					initialRoster[i][startDay + d] = combinations.get(i).get(j).get(d);
+				}
+				ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initialRoster);
+				try {
+					list.add(constraintChecker.calcViolationsPhase2(i));
+				} catch (Exception e) {
+				}
+			}
+			costs.add(list);
+		}
+
+		return costs;
+	}
+	
 	public int[][] createMatrixCosts(String[][] initialRoster, int startDay){
 		int numNurses = schedulingPeriod.getEmployees().size();
 		int[][] costMatrix = new int[numNurses][128];
@@ -437,13 +475,62 @@ public class TwoPhaseNRP {
 		}
 		return PhaseOne;
 	}
+	
+	public ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations (int startDay){
+		List<Shift> shifts = this.helper.getShiftList();
+		String[] shiftIDs = new String[shifts.size()];
+		int maxdays = 3;
+		
+		int index = 0;
+		for(Shift s: shifts) {
+			String shiftID = s.getId();
+			shiftIDs[index] = shiftID;
+			index++;
+		}
+		
+		Permutations perm = new Permutations();
+		ArrayList<List<String>> listCombinations = new ArrayList<List<String>>();
+		for(int i = 0; i < maxdays + 1; i++) {
+			List<String> combinations = perm.generatePermutations(shiftIDs, i);
+			listCombinations.add(combinations);
+		}
+		
+		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = new ArrayList<ArrayList<ArrayList<String>>>();
+		for(int i=0; i< this.numNurses; i++) {	
+			int numWorkingDays = 0;
+			for(int d=startDay; d < startDay + maxdays; d++) {
+				if(this.currentSolution.getRoster()[i][d] != null){
+					numWorkingDays++;
+				}
+			}
+			List<String> combinations = listCombinations.get(numWorkingDays);
+			ArrayList<ArrayList<String>> allCombinations = new ArrayList<ArrayList<String>>();
+			for(int j=0; j<combinations.size(); j++) {
+				ArrayList<String> newList = new ArrayList<String>();
+				allCombinations.add(newList);
+				index = 0;
+				for(int d=startDay; d < startDay + maxdays; d++) {
+					if(this.currentSolution.getRoster()[i][d] != null) {
+						String s = Character.toString(combinations.get(j).charAt(index));
+						allCombinations.get(j).add(s);
+						index++;
+					}
+					else {
+						allCombinations.get(j).add(null);
+					}
+				}
+			}
+			shiftTypeCombinations.add(allCombinations);
+		}
+		return shiftTypeCombinations;
+	}
 
 	public int[] demand() {
-		int numDays = helper.getDaysInPeriod();
+		int numDays = this.helper.getDaysInPeriod();
 		int[] dailyDemand = new int[numDays];
 
 		for(int d=0; d <numDays; d++) {
-			List<main.RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(d);
+			List<main.RequirementsForDay> requirementsForDay = this.helper.getRequirementsForDay(d);
 			int numShiftTypes = requirementsForDay.size();
 			for(int t=0; t<numShiftTypes; t++) {
 				dailyDemand[d] += requirementsForDay.get(t).getDemand();
