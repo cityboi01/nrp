@@ -34,8 +34,13 @@ public class TwoPhaseNRP {
 		//initializing initial solution
 		instance.currentSolution = instance.getInitialSolution();
 
-
-
+		for(int i=0; i<instance.numNurses; i++) {
+        	for(int d=0; d<instance.numDays; d++) {
+        		System.out.print(instance.currentSolution.getRoster()[i][d] + "	");
+        	}
+        	System.out.println();
+		}
+		
 		//Phase 1 weekly ILP optimization 
 		for(int j=0; j<5; j++) {
 			for(int i=0; i<4; i++) {
@@ -45,14 +50,14 @@ public class TwoPhaseNRP {
 		}
 
 		//local search function call for Phase 1 LS goes here
-		for(int j=0; j<5; j++) {   
+		for(int j=0; j<0; j++) {   
 			for(int i=0; i<28; i++) {
 				instance.singleCutLS(i);
 			}
 			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 		int count = 0;
-		while(count < 50000) {
+		while(count < 30000) {
 			count++;
 			instance.groupSwapPhase1();
 			if(count % 1000 == 0) {
@@ -69,14 +74,12 @@ public class TwoPhaseNRP {
 		ConstraintChecker checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
 		for(int i=0; i<rosterPhase1.length; i++) {
 			for(int d=0; d<rosterPhase1[0].length; d++) {
-				System.out.print(rosterPhase1[i][d] + "	");
+				//System.out.print(rosterPhase1[i][d] + "	");
 			}
 			cost += checker.calcViolationsPhase2(i);
-			System.out.println();
+			//System.out.println();
 		}
 		System.out.println(cost);
-		
-
 
 	}
 
@@ -460,6 +463,7 @@ public class TwoPhaseNRP {
 		int[] nurseViolations = new int[this.numNurses];
 		for(int i=0; i< this.numNurses; i++) {
 			nurseViolations[i] = constraintChecker.calcViolationsPhase1(i);
+			//System.out.println("violations nurse " + i + ": " + numberViolations);
 			numberViolations += nurseViolations[i];
 		}
 

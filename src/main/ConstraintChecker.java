@@ -64,16 +64,14 @@ public class ConstraintChecker {
         punishmentPoints += checkNumbAssigment(employeeID);
         punishmentPoints += checkDayOffRequest(employeeID);
         punishmentPoints += checkUnwantedPatternDay(employeeID);
-        
-        //punishmentPoints = checkMinConsecutiveWorkingDays(employeeID);
- 
+                
         return punishmentPoints;
     }
     
     public int calcViolationsPhase2(int employeeID) throws Exception {
         int punishmentPoints = 0;
         punishmentPoints += checkShiftOffRequest(employeeID);
-        punishmentPoints += checkIdenticalShiftTypesDuringWeekend(employeeID);
+        //punishmentPoints += checkIdenticalShiftTypesDuringWeekend(employeeID);
         punishmentPoints += checkNoNightShiftBeforeFreeWeekend(employeeID);
         punishmentPoints += checkUnwantedPatternShift(employeeID);
         
@@ -444,7 +442,7 @@ public class ConstraintChecker {
     }
     
     private int checkUnwantedPatternDay(int employeeID) {
-        List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
+    	List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
         Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
         Contract c = (Contract) schedulingPeriod.getContracts().get(e.getContractId());
         List<Pattern> patternList = helper.getPatternList();
@@ -457,26 +455,30 @@ public class ConstraintChecker {
             for (int k : unwantedPatterns) {
                 boolean pattern_ok = false;
                 Pattern pattern = patternList.get(k);
-                List<PatternEntry> patternEntry = pattern.getPatternEntryList();
-                PatternEntry trigger = patternEntry.get(0);
-                if (((trigger.getShiftType().equals("Any") && shift != null) || ( trigger.getShiftType().equals("None") && shift != null)) && (trigger.getDay() == day)) {
-                    for (int l = 1; l < patternEntry.size(); l++) {
-                    	//if the pattern can still fit in the remaining days of the schedule
-                        if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
-                            PatternEntry currentEntry = patternEntry.get(l);
-                            String shift2 = roster[employeeID][i+l];
-                            Day day2 = helper.getWeekDayOfPeriode(i + l);
-                            if (((currentEntry.getShiftType().equals("Any") && shift2 != null) || ( trigger.getShiftType().equals("None") && shift2 != null)) &&
-                                    (currentEntry.getDay() == day2)) {
-                                pattern_ok = true;
-                            } else {
-                                pattern_ok = false;
-                                break;
+                boolean shiftSpecific = pattern.isShiftSpecific();
+                
+                if(!shiftSpecific) {
+                	List<PatternEntry> patternEntry = pattern.getPatternEntryList();
+	                PatternEntry trigger = patternEntry.get(0);
+                	
+                	if (trigger.getDay() == day && ((trigger.getShiftType().equals("Any") && shift != null) ||  (trigger.getShiftType().equals("None") && shift == null))) {
+                		for (int l = 1; l < patternEntry.size(); l++) {
+                            if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
+                                PatternEntry currentEntry = patternEntry.get(l);
+                                String shift2 = roster[employeeID][i+l]; //helper.getShiftOfDay(i + l, j);
+                                Day day2 = helper.getWeekDayOfPeriode(i + l);
+                            	if (currentEntry.getDay() == day2 && ((currentEntry.getShiftType().equals("Any") && shift2 != null) 
+                            			||  (currentEntry.getShiftType().equals("None") && shift2 == null))) {
+                            		pattern_ok = true;
+                                } else {
+                                    pattern_ok = false;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (pattern_ok) {
-                        punishmentPoints = punishmentPoints + pattern.getWeight();
+                        if (pattern_ok) {
+                        	punishmentPoints = punishmentPoints + pattern.getWeight();
+                        }
                     }
                 }
             }
