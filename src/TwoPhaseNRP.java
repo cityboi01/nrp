@@ -28,7 +28,6 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-
 		String fileName = "sprint01";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
@@ -64,7 +63,6 @@ public class TwoPhaseNRP {
 			}
 			System.out.println("Vios after ILP1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
-		
 		System.out.println("Cost after Phase1: " + instance.currentSolution.getScore());
 
 		
@@ -81,6 +79,11 @@ public class TwoPhaseNRP {
         	System.out.println();
 		}
 		
+		int currentDay = 0;
+		while(currentDay < 27) {
+			instance.solveShiftAssignment(currentDay);
+			currentDay += 3;
+		}
 		
 		//test randomShiftAssign 
 		
@@ -99,6 +102,90 @@ public class TwoPhaseNRP {
         
 	}
 
+	
+	public void solveShiftAssignment(int startDay) {
+		String[][] roster = this.currentSolution.getRoster();
+		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = shiftTypeCombinations(startDay);
+		ArrayList<ArrayList<Integer>> costs = createMatrixCostsPhase2(roster, startDay);
+		ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> createMatrixShiftType = createMatrixShiftType(roster, shiftTypeCombinations);
+		List<Shift> shifts = this.helper.getShiftList();
+		
+		try {
+			// define a new cplex object
+			IloCplex cplex = new IloCplex();
+			cplex.setOut(null);			
+
+			// declare variable matrix: numNurses times 128 many integer variables with lower bound 0 and upper bound 1		
+			IloNumVar[][] shiftAssignment= new IloNumVar[numNurses][];
+			for(int i=0; i<numNurses; i++) {
+				shiftAssignment[i] = cplex.numVarArray(shiftTypeCombinations.get(i).size(), 0 , 1 ,IloNumVarType.Int);				
+			}
+
+			// add objective function that minimizes total costs
+			IloLinearNumExpr obj = cplex.linearNumExpr(); 
+			for (int i = 0; i < numNurses; i++) {
+				for(int j = 0; j < shiftTypeCombinations.get(i).size(); j++) {
+					obj.addTerm(shiftAssignment[i][j],costs.get(i).get(j));
+				}
+			}
+			cplex.addMinimize(obj);
+
+			// add constraints
+
+			// constraint that ensures at least one work rest pattern is assigned per nurse
+			for(int i=0; i < numNurses; i++){
+				IloLinearNumExpr expr1 = cplex.linearNumExpr();
+				for (int j = 0; j < shiftTypeCombinations.get(i).size(); j++){
+					expr1.addTerm(shiftAssignment[i][j], 1); 
+				}
+				cplex.addEq(expr1, 1);
+			}                                                                                              
+
+			// constraint that ensures the demand is met each day
+			for(int d = 0; d < 3; d++) {
+				for(int t = 0; t<shifts.size(); t++) {
+					IloLinearNumExpr expr2 = cplex.linearNumExpr();
+					for (int i = 0; i < numNurses; i++){
+						for(int j=0; j < shiftTypeCombinations.get(i).size(); j++){
+							expr2.addTerm(shiftAssignment[i][j], createMatrixShiftType.get(i).get(j).get(t).get(d)); 
+						}
+					}
+					cplex.addEq(expr2, this.helper.getRequirement(shifts.get(t).getId(), d+startDay));
+				}	
+			}
+
+			// solve ILP
+			cplex.solve();
+
+			// save optimal value
+			int minimumCost = (int) cplex.getObjValue();
+			System.out.println("Minimum cost " + minimumCost);
+
+
+			this.currentSolution.setScore(0);
+			for(int i=0; i<numNurses; i++) {
+				for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {	
+					if((cplex.getValue(shiftAssignment[i][j]) < 1 + 0.000011) && (cplex.getValue(shiftAssignment[i][j]) > 1 - 0.000011)) {
+						this.currentSolution.setNurseScores(i, costs.get(i).get(j));
+						this.currentSolution.setScore(this.currentSolution.getScore() + costs.get(i).get(j));
+						ArrayList<String> shiftAssign = shiftTypeCombinations.get(i).get(j);
+						for(int d=0; d<3; d++) {
+							roster[i][startDay + d] = shiftAssign.get(d);
+						}
+					}
+				}
+			}
+
+			// close cplex object      
+			cplex.close(); 	
+
+		} catch (IloException exc) {
+			exc.printStackTrace();
+		}
+		this.currentSolution.setRoster(roster);	
+		
+	}
+	
 	public String[][] randomShiftAssign(){
 		String[][] roster = this.currentSolution.getRoster();
 		int numColumns = roster[0].length;
@@ -202,10 +289,10 @@ public class TwoPhaseNRP {
 
 	}
 
-
+	
 	public void solveWorkRestAssignment(int startDay) {
 		String[][] roster = this.currentSolution.getRoster();
-		int[][] costs = createMatrixCosts(roster, startDay);
+		int[][] costs = createMatrixCostsPhase1(roster, startDay);
 		int[][][] matrixNoType = createMatrixNoType(roster);
 
 		try {
@@ -419,7 +506,7 @@ public class TwoPhaseNRP {
 		return costs;
 	}
 	
-	public int[][] createMatrixCosts(String[][] initialRoster, int startDay){
+	public int[][] createMatrixCostsPhase1(String[][] initialRoster, int startDay){
 		int numNurses = schedulingPeriod.getEmployees().size();
 		int[][] costMatrix = new int[numNurses][128];
 
@@ -445,6 +532,27 @@ public class TwoPhaseNRP {
 		return costMatrix;
 	}
 
+	public ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> createMatrixShiftType(String[][] roster, ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations) {
+		ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> PhaseTwo = new ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>>();
+		Helper helper = new Helper(schedulingPeriod, roster);
+		List<Shift> shifts = helper.getShiftList();
+		
+		for(int i=0; i<numNurses; i++) {
+			PhaseTwo.add(new ArrayList<ArrayList<ArrayList<Integer>>>());
+			for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {
+				PhaseTwo.get(i).add(new ArrayList<ArrayList<Integer>>());
+				for(int t=0; t<shifts.size(); t++) {
+					PhaseTwo.get(i).get(j).add(new ArrayList<Integer>());
+					String shiftID = shifts.get(t).getId();
+					for(int d=0; d<3; d++) {
+						PhaseTwo.get(i).get(j).get(t).add(helper.getEntryAijtdShift(i, j, shiftID, d, shiftTypeCombinations));
+					}
+				}
+			}
+		}
+		return PhaseTwo;
+	}
+	
 	public int[][][] createMatrixNoType(String[][] roster) {
 
 		int[][][] PhaseOne = new int [numNurses][128][7];
