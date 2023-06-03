@@ -231,6 +231,60 @@ public class TwoPhaseNRP {
 
 	}
 
+	
+	public void groupILS1(int maxInnerCount, int maxOuterCount) {
+		Solution tempSolution = this.currentSolution.clone();
+		int outerCount = 0;
+		while(outerCount < maxOuterCount) {
+			int innerCount = 0;
+			outerCount ++;
+			while(innerCount < maxInnerCount) {
+				innerCount++;
+				this.groupSwapPhase1();
+				if(innerCount % 1000 == 0) {
+					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
+				}
+			}
+			if(tempSolution.getScore() < currentSolution.getScore()) {
+				this.currentSolution = tempSolution;
+			}
+			this.cycleShiftPhase1();
+		}
+		
+	}
+
+	public void cycleShiftPhase1() {
+		String[][] roster = this.currentSolution.getRoster();
+		Random random = this.random;
+		int column = random.nextInt(roster.length); // Select random column
+		int startRow = random.nextInt(roster[column].length - 1); // Select random start row
+
+		// Find a different end row from the start row s.t. endRow > startRow
+		int endRow = random.nextInt(roster[column].length - (startRow +1)) + (startRow + 1);
+		
+
+		// Perform cycle swap within the selected range of rows of the chosen column
+		String temp = roster[column][endRow];
+		int increment = (startRow < endRow) ? -1 : 1;
+		for (int i = endRow; i != startRow; i += increment) {
+			roster[column][i] = roster[column][i + increment];
+		}
+		roster[column][startRow] = temp;
+		ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
+		int delta = 0;
+		for (int i = endRow; i != startRow; i += increment) {
+			try {
+				delta += (checker.calcViolationsPhase1(i) - this.currentSolution.getNurseScores()[i]);
+			}
+			catch(Exception e) {
+
+			}
+		}
+		this.currentSolution.setScore(this.currentSolution.getScore() + delta);
+		
+	}
+	
+	
 	public void groupSwapPhase1(){
 		String[][] roster = this.currentSolution.getRoster();
 		// Select two random and non-equal rows

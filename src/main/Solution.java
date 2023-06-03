@@ -35,5 +35,27 @@ public class Solution {
 		this.nurseScores[nurse] = nurseScore;
 	}
     
+	@Override
+	public Solution clone() {
+        try {
+            Solution cloned = (Solution) super.clone();
+            cloned.roster = this.cloneRoster();
+            cloned.nurseScores = this.cloneNurseScores();
+            return cloned;
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(e);
+        }
+    }
     
+    private String[][] cloneRoster() {
+        String[][] clonedRoster = new String[this.roster.length][];
+        for (int i = 0; i < this.roster.length; i++) {
+            clonedRoster[i] = this.roster[i].clone();
+        }
+        return clonedRoster;
+    }
+    
+    private int[] cloneNurseScores() {
+        return this.nurseScores.clone();
+    }
 }
