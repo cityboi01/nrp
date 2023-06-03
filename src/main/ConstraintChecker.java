@@ -71,7 +71,7 @@ public class ConstraintChecker {
     public int calcViolationsPhase2(int employeeID) throws Exception {
         int punishmentPoints = 0;
         punishmentPoints += checkShiftOffRequest(employeeID);
-        //punishmentPoints += checkIdenticalShiftTypesDuringWeekend(employeeID);
+        punishmentPoints += checkIdenticalShiftTypesDuringWeekend(employeeID);
         punishmentPoints += checkNoNightShiftBeforeFreeWeekend(employeeID);
         punishmentPoints += checkUnwantedPatternShift(employeeID);
         
@@ -465,7 +465,7 @@ public class ConstraintChecker {
                 		for (int l = 1; l < patternEntry.size(); l++) {
                             if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
                                 PatternEntry currentEntry = patternEntry.get(l);
-                                String shift2 = roster[employeeID][i+l]; //helper.getShiftOfDay(i + l, j);
+                                String shift2 = roster[employeeID][i+l]; 
                                 Day day2 = helper.getWeekDayOfPeriode(i + l);
                             	if (currentEntry.getDay() == day2 && ((currentEntry.getShiftType().equals("Any") && shift2 != null) 
                             			||  (currentEntry.getShiftType().equals("None") && shift2 == null))) {
@@ -500,27 +500,34 @@ public class ConstraintChecker {
             for (int k : unwantedPatterns) {
                 boolean pattern_ok = false;
                 Pattern pattern = patternList.get(k);
-                List<PatternEntry> patternEntry = pattern.getPatternEntryList();
-                PatternEntry trigger = patternEntry.get(0);
-                if (trigger.getShiftType().equals(shift) &&
-                        (trigger.getDay() == Day.Any || trigger.getDay() == day)) {
-                    for (int l = 1; l < patternEntry.size(); l++) {
-                        if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
-                            PatternEntry currentEntry = patternEntry.get(l);
-                            String shift2 = roster[employeeID][i+l]; 
-                            Day day2 = helper.getWeekDayOfPeriode(i + l);
-                            if (( currentEntry.getShiftType().equals(shift2)) &&
-                                    (currentEntry.getDay() == Day.Any || currentEntry.getDay() == day2)) {
-                                pattern_ok = true;
-                            } else {
-                                pattern_ok = false;
-                                break;
-                            }
-                        }
-                    }
-                    if (pattern_ok) {
-                        punishmentPoints = punishmentPoints + pattern.getWeight();
-                    }
+                boolean shiftSpecific = pattern.isShiftSpecific();
+                
+                if(shiftSpecific) {
+
+	                List<PatternEntry> patternEntry = pattern.getPatternEntryList();
+	                PatternEntry trigger = patternEntry.get(0);
+	                
+	                if (trigger.getShiftType().equals(shift) &&
+	                        (trigger.getDay() == Day.Any || trigger.getDay() == day)) {
+	                    for (int l = 1; l < patternEntry.size(); l++) {
+	                        if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
+	                            PatternEntry currentEntry = patternEntry.get(l);
+	                            String shift2 = roster[employeeID][i+l]; 
+	                            Day day2 = helper.getWeekDayOfPeriode(i + l);
+	                            
+	                            if (((currentEntry.getShiftType().equals("Any")&& shift2 != null) || currentEntry.getShiftType().equals(shift2)) &&
+	                            		(currentEntry.getDay() == Day.Any || currentEntry.getDay() == day2)) {
+	                                pattern_ok = true;
+	                            } else {
+	                                pattern_ok = false;
+	                                break;
+	                            }
+	                        }
+	                    }
+	                    if (pattern_ok) {
+	                        punishmentPoints = punishmentPoints + pattern.getWeight();
+	                    }
+	                }
                 }
             }
         }
@@ -558,7 +565,7 @@ public class ConstraintChecker {
                     int indexOfWeekendDefinition = weekendDefinition.indexOf(currentDay);
                     if (workOnDayPeriode.size() > i + weekendDefinition.size() - 1) {
                         for (int k = 0; k < weekendDefinition.size() - indexOfWeekendDefinition; k++) {
-                            if (!currentShift.equals(roster[employeeID][k+i])) { 
+                            if (currentShift != roster[employeeID][k+i]) { 
                                 punishmentPoints++;
                             }
                         }
@@ -591,12 +598,19 @@ public class ConstraintChecker {
         if (c.isNoNightShiftBeforeFreeWeekend()) {
             for (int i = 0; i < workOnDayPeriode.size(); i++) {
                 Day currentDay = helper.getWeekDayOfPeriode(i);
-                if (weekendDefinition.get(0) == currentDay &&
-                        workOnDayPeriode.get(i).get(employeeID) == 0 &&
-                        i != 0 &&
-                        roster[employeeID][i-1].equals("N")){
-                    punishmentPoints++;
-                }
+	            if(i != 0 && roster[employeeID][i-1] != null){
+                	if (weekendDefinition.get(0) == currentDay) {
+                		boolean freeWeekend = true;
+                		for(int d=i; d<(i + weekendDefinition.size()); d++) {  
+	                	   if(workOnDayPeriode.get(d).get(employeeID) != 0) {
+	                		   freeWeekend = false;
+	                	   }
+                		}
+                		if(freeWeekend && roster[employeeID][i-1].equals("N")){
+                			punishmentPoints++;
+                		}
+	                }
+            	}
             }
         }
         return punishmentPoints*c.getNoNightShiftBeforeFreeWeekend_weight();

@@ -48,7 +48,7 @@ public class TwoPhaseNRP {
 			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 		int count = 0;
-		while(count < 0) {
+		while(count < 2000) {
 			count++;
 			instance.groupSwapPhase1();
 			if(count % 1000 == 0) {
@@ -57,7 +57,7 @@ public class TwoPhaseNRP {
 		}
 		
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<0; j++) {
+		for(int j=0; j<2; j++) {
 			for(int i=0; i<4; i++) {
 				instance.solveWorkRestAssignment(i*7);
 			}
@@ -79,16 +79,20 @@ public class TwoPhaseNRP {
         	System.out.println();
 		}
 		
-		int currentDay = 0;
-		while(currentDay < 27) {
-			instance.solveShiftAssignment(currentDay);
-			currentDay += 3;
+		int m =0;
+		while(m<3) {
+			int currentDay = 0;	
+			while(currentDay < 26) {
+				instance.solveShiftAssignment(currentDay);
+				currentDay += 1;
+			}
+			m++;
 		}
-		
 		//test randomShiftAssign 
 		
 		System.out.println("Shift assign completed.");
 		String[][] rosterPhase1 = instance.currentSolution.getRoster();
+		
 		int cost = 0;
 		ConstraintChecker checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
 		for(int i=0; i<rosterPhase1.length; i++) {
@@ -100,6 +104,10 @@ public class TwoPhaseNRP {
 		}
 		System.out.println(cost);
         
+		for(int i=0; i<rosterPhase1.length; i++) {
+			System.out.println("Violations phase 2 nurse " + i + ":	" + checker.calcViolationsPhase2(i));
+		}
+		
 	}
 
 	
