@@ -60,7 +60,7 @@ public class TwoPhaseNRP {
 		
 		
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<2; j++) {
+		for(int j=0; j<0; j++) {
 			for(int i=0; i<4; i++) {
 				instance.solveWorkRestAssignment(i*7);
 			}
@@ -248,20 +248,20 @@ public class TwoPhaseNRP {
 	public void cycleShiftPhase1() {
 		String[][] roster = this.currentSolution.getRoster();
 		Random random = this.random;
-		int column = random.nextInt(roster.length); // Select random column
-		int startRow = random.nextInt(roster[column].length - 1); // Select random start row
+		int column = random.nextInt(roster[0].length); // Select random column
+		int startRow = random.nextInt(roster.length - 1); // Select random start row
 
 		// Find a different end row from the start row s.t. endRow > startRow
-		int endRow = random.nextInt(roster[column].length - (startRow +1)) + (startRow + 1);
-		
+		int endRow = random.nextInt(roster.length - (startRow +1)) + (startRow + 1);
+		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
 
 		// Perform cycle swap within the selected range of rows of the chosen column
-		String temp = roster[column][endRow];
+		String temp = roster[endRow][column];
 		int increment = (startRow < endRow) ? -1 : 1;
 		for (int i = endRow; i != startRow; i += increment) {
-			roster[column][i] = roster[column][i + increment];
+			roster[i][column] = roster[i + increment][column];
 		}
-		roster[column][startRow] = temp;
+		roster[startRow][column] = temp;
 		ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
 		int delta = 0;
 		for (int i = endRow; i != startRow; i += increment) {
@@ -274,7 +274,19 @@ public class TwoPhaseNRP {
 		}
 		this.currentSolution.setScore(this.currentSolution.getScore() + delta);
 		
+		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column after cycleShift.");
+		
 	}
+	
+	public static int countNullOccurrences(String[][] roster, int columnIndex) {
+        int count = 0;
+        for (String[] row : roster) {
+            if (columnIndex >= 0 && columnIndex < row.length && row[columnIndex] == null) {
+                count++;
+            }
+        }
+        return count;
+    }
 	
 	
 	public void groupSwapPhase1(){
