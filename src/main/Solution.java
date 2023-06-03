@@ -1,9 +1,10 @@
 package main;
 
-public class Solution {
+public class Solution implements Cloneable{
 	private String[][] roster;
 	private int score;
 	private int[] nurseScores;
+	
 	
 	public Solution(String[][] roster, int score, int[] nurseScores) {
 		this.roster = roster;

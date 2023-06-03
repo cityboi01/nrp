@@ -48,13 +48,16 @@ public class TwoPhaseNRP {
 			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 		int count = 0;
-		while(count < 2000) {
+		while(count < 0) {
 			count++;
 			instance.groupSwapPhase1();
 			if(count % 1000 == 0) {
 				System.out.println("Vios after " + (count) + " GroupSwaps: " + instance.currentSolution.getScore());
 			}
 		}
+		
+		instance.groupILS1(1000, 2);
+		
 		
 		//Phase 1 weekly ILP optimization 
 		for(int j=0; j<2; j++) {
@@ -66,26 +69,15 @@ public class TwoPhaseNRP {
 		System.out.println("Cost after Phase1: " + instance.currentSolution.getScore());
 
 		
-		//ArrayList<ArrayList<ArrayList<String>>> combinations = instance.shiftTypeCombinations (0);
-		instance.randomShiftAssign();
-		ArrayList<ArrayList<Integer>> combinationCosts = instance.createMatrixCostsPhase2(instance.currentSolution.getRoster(), 0);
-		
-		for(int i=0; i<instance.numNurses; i++) {
-			for(int d=0; d<combinationCosts.get(i).size(); d++) {
-				
-				System.out.print(combinationCosts.get(i).get(d) + "	");
-				
-        	}
-        	System.out.println();
-		}
-		
 		int m =0;
-		while(m<3) {
+		while(m<1) {
+			instance.randomShiftAssign();
 			int currentDay = 0;	
-			while(currentDay < 26) {
+			while(currentDay < 27) {
 				instance.solveShiftAssignment(currentDay);
-				currentDay += 1;
+				currentDay += 3;
 			}
+			System.out.println(m);
 			m++;
 		}
 		//test randomShiftAssign 
@@ -219,7 +211,7 @@ public class TwoPhaseNRP {
 					int randomIndex = this.random.nextInt(indices.size());
 					int index = indices.remove(randomIndex);
 
-					if (roster[index][column] == "W") {
+					if (roster[index][column] != null) {
 						roster[index][column] = currentShiftType;
 						currentDemand--;
 					}
