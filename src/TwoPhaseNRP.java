@@ -28,7 +28,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-		String fileName = "long01";
+		String fileName = "sprint01";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
 		instance.currentSolution = instance.getInitialSolution();
@@ -47,16 +47,16 @@ public class TwoPhaseNRP {
 			}
 			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
-		int count = 0;
-		while(count < 0) {
-			count++;
-			instance.groupSwapPhase1();
-			if(count % 1000 == 0) {
-				System.out.println("Vios after " + (count) + " GroupSwaps: " + instance.currentSolution.getScore());
-			}
-		}
+//		int count = 0;
+//		while(count < 0) {
+//			count++;
+//			instance.groupSwapPhase1();
+//			if(count % 1000 == 0) {
+//				System.out.println("Vios after " + (count) + " GroupSwaps: " + instance.currentSolution.getScore());
+//			}
+//		}
 		
-		//instance.groupILS1(1000, 2);
+		instance.groupILS1(1000, 10, 0);
 		
 		
 		//Phase 1 weekly ILP optimization 
@@ -224,25 +224,80 @@ public class TwoPhaseNRP {
 	}
 
 	
-	public void groupILS1(int maxInnerCount, int maxOuterCount) {
-		Solution tempSolution = this.currentSolution.clone();
+	public void groupILS1(int maxInnerCount, int maxOuterCount, int destroyDays) {
 		int outerCount = 0;
+		Solution tempSolution = this.currentSolution.clone();
 		while(outerCount < maxOuterCount) {
 			int innerCount = 0;
 			outerCount ++;
 			while(innerCount < maxInnerCount) {
 				innerCount++;
 				this.groupSwapPhase1();
-				if(innerCount % 1000 == 0) {
-					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
-				}
+//				if(innerCount % 1000 == 0) {
+//					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
+//				}
 			}
 			if(tempSolution.getScore() < currentSolution.getScore()) {
 				this.currentSolution = tempSolution;
 			}
-			this.cycleShiftPhase1();
+//			System.out.println("Vios (temp) after ILS iteration: " + tempSolution.getScore());
+			System.out.println("Vios (current) after ILS iteration: " + this.currentSolution.getScore());
+			tempSolution = this.currentSolution.clone();
+			this.perturb(destroyDays);
+//			System.out.println("Vios after perturbation: " + this.currentSolution.getScore());
+		}
+		if(tempSolution.getScore() < currentSolution.getScore()) {
+			this.currentSolution = tempSolution;
 		}
 		
+	}
+	
+	public void perturb(int destroyDays) {
+		if(destroyDays == this.numDays) {
+			try {
+				this.currentSolution = this.getInitialSolution();
+			}
+			catch(Exception e) {
+				System.out.println("Exception in perturb, getting new initial sol raised.");
+			}
+			
+		}
+		else if(destroyDays == 0) {
+			this.cycleShiftPhase1();
+		}
+		else {
+			Solution randSol = null;
+			try {
+				randSol = this.getInitialSolution();
+			}
+			catch(Exception e) {
+				System.out.println("Exception in perturb, getting new initial sol raised.");
+			}
+			ArrayList<Integer> indices = new ArrayList<Integer>();
+			for(int i = 0; i < this.numDays; i++) {
+				indices.add(i);
+			}
+			String[][] currentRoster = this.currentSolution.getRoster();
+			String[][] randRoster = randSol.getRoster();
+			while(destroyDays > 0) {
+				int randDay = indices.remove(this.random.nextInt(indices.size()));
+				
+				for(int i = 0; i < currentRoster.length; i++) {
+					currentRoster[i][randDay] = randRoster[i][randDay];
+				}
+				destroyDays --;
+			}
+			ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, currentRoster);
+			int cost = 0;
+			for (int i = 0; i < this.numNurses; i ++) {
+				try {
+					cost += checker.calcViolationsPhase1(i);
+				}
+				catch(Exception e) {
+					System.out.println("Exception in perturb, using new checker.calcVios raised.");
+				}
+			}
+		}
 	}
 
 	public void cycleShiftPhase1() {
@@ -253,7 +308,7 @@ public class TwoPhaseNRP {
 
 		// Find a different end row from the start row s.t. endRow > startRow
 		int endRow = random.nextInt(roster.length - (startRow +1)) + (startRow + 1);
-		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
+//		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
 
 		// Perform cycle swap within the selected range of rows of the chosen column
 		String temp = roster[endRow][column];
@@ -269,12 +324,12 @@ public class TwoPhaseNRP {
 				delta += (checker.calcViolationsPhase1(i) - this.currentSolution.getNurseScores()[i]);
 			}
 			catch(Exception e) {
-
+				System.out.println("Exception in cycleShiftPhase1, using new checker.calcVios raised.");
 			}
 		}
 		this.currentSolution.setScore(this.currentSolution.getScore() + delta);
 		
-		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column after cycleShift.");
+//		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column after cycleShift.");
 		
 	}
 	
@@ -329,7 +384,7 @@ public class TwoPhaseNRP {
 			vioNurse2After = constraintCheckerAfter.calcViolationsPhase1(nurse2);
 		}
 		catch(Exception e) {
-
+			System.out.println("Exception in groupSwapPhase1, using new checker.calcVios raised.");
 		}
 
 		//compute delta for the two nurses
@@ -542,6 +597,7 @@ public class TwoPhaseNRP {
 					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(i);
 					costMatrix[j][i] = constraintChecker.calcViolationsPhase1(j);
 				} catch (Exception e) {
+					System.out.println("Exception in createMatrixNurseRecombinationCosts, using new checker.calcVios raised.");
 				}
 
 			}
@@ -564,6 +620,7 @@ public class TwoPhaseNRP {
 				try {
 					list.add(constraintChecker.calcViolationsPhase2(i));
 				} catch (Exception e) {
+					System.out.println("Exception in createMatrixCostsPhase2, using new checker.calcVios raised.");
 				}
 			}
 			costs.add(list);
@@ -591,6 +648,7 @@ public class TwoPhaseNRP {
 				try {
 					costMatrix[i][j] = constraintChecker.calcViolationsPhase1(i);
 				} catch (Exception e) {
+					System.out.println("Exception in createMatrixCostsPhase1, using new checker.calcVios raised.");
 				}
 			}
 		}
