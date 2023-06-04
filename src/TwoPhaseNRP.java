@@ -28,7 +28,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-		String fileName = "sprint01";
+		String fileName = "long01";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
 		instance.currentSolution = instance.getInitialSolution();
@@ -663,11 +663,14 @@ public class TwoPhaseNRP {
 		}
 		
 		Permutations perm = new Permutations();
-		ArrayList<List<String>> listCombinations = new ArrayList<List<String>>();
-		for(int i = 0; i < maxdays + 1; i++) {
-			List<String> combinations = perm.generatePermutations(shiftIDs, i);
+		ArrayList<List<ArrayList<String>>> listCombinations = new ArrayList<List<ArrayList<String>>>();
+		
+		for(int i = 0; i <= maxdays; i++) {
+			List<ArrayList<String>> combinations = perm.generatePermutations(shiftIDs, i);
 			listCombinations.add(combinations);
 		}
+		
+		
 		
 		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = new ArrayList<ArrayList<ArrayList<String>>>();
 		for(int i=0; i< this.numNurses; i++) {	
@@ -677,7 +680,8 @@ public class TwoPhaseNRP {
 					numWorkingDays++;
 				}
 			}
-			List<String> combinations = listCombinations.get(numWorkingDays);
+			
+			List<ArrayList<String>> combinations = listCombinations.get(numWorkingDays);
 			ArrayList<ArrayList<String>> allCombinations = new ArrayList<ArrayList<String>>();
 			for(int j=0; j<combinations.size(); j++) {
 				ArrayList<String> newList = new ArrayList<String>();
@@ -685,7 +689,7 @@ public class TwoPhaseNRP {
 				index = 0;
 				for(int d=startDay; d < startDay + maxdays; d++) {
 					if(this.currentSolution.getRoster()[i][d] != null) {
-						String s = Character.toString(combinations.get(j).charAt(index));
+						String s = combinations.get(j).get(index);
 						allCombinations.get(j).add(s);
 						index++;
 					}

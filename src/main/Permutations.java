@@ -1,13 +1,44 @@
 package main;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Permutations {
-    public List<String> generatePermutations(String[] strings, int k) {
+    public List<ArrayList<String>> generatePermutations(String[] strings, int k) {
+    	String[] modStrings = substituteDH(strings);
         List<String> permutations = new ArrayList<>();
-        backtrack(strings, new StringBuilder(), new boolean[strings.length], k, permutations);
-        return permutations;
+        backtrack(modStrings, new StringBuilder(), new boolean[modStrings.length], k, permutations);
+        return splitAndResubstitutePermutations(permutations);
+    }
+    
+    private String[] substituteDH(String[] strings) {
+    	String[] modifiedStrings = Arrays.copyOf(strings, strings.length);
+        for (int i = 0; i < modifiedStrings.length; i++) {
+            if (modifiedStrings[i].equals("DH")) {
+                modifiedStrings[i] = "H";
+            }
+        }
+        return modifiedStrings;
+    }
+    
+    private List<ArrayList<String>> splitAndResubstitutePermutations(List<String> permutations) {
+        List<ArrayList<String>> splitStrings = new ArrayList<>();
+        for (String permutation : permutations) {
+            ArrayList<String> split = new ArrayList<>();
+            for (int i = 0; i < permutation.length(); i++) {
+            	String substring = Character.toString(permutation.charAt(i));
+            	if(!substring.equals("H")) {
+            		split.add(substring);
+            	}
+            	else {
+            		split.add("DH");
+            	}
+                
+            }
+            splitStrings.add(split);
+        }
+        return splitStrings;
     }
 
     private static void backtrack(String[] strings, StringBuilder current, boolean[] used, int k, List<String> permutations) {

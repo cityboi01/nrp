@@ -35,11 +35,16 @@ public class InitializeSolution {
             while(workingNurses < dailyDemand) {
             	int nurseID = r.nextInt(numEmployees);
             	
-            	if(solutionMatrix[nurseID][d] != "W") {
+            	if(solutionMatrix[nurseID][d] == null) {
             		solutionMatrix[nurseID][d] = "W";
             		workingNurses++;
             	}
+//            	if(!solutionMatrix[nurseID][d].equals("W")) {
+//            		solutionMatrix[nurseID][d] = "W";
+//            		workingNurses++;
+//            	}
             }
+            
     	}
     	return solutionMatrix;
     }
