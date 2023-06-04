@@ -56,11 +56,11 @@ public class TwoPhaseNRP {
 			}
 		}
 		
-		instance.groupILS1(1000, 2);
+		//instance.groupILS1(1000, 2);
 		
 		
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<0; j++) {
+		for(int j=0; j<2; j++) {
 			for(int i=0; i<4; i++) {
 				instance.solveWorkRestAssignment(i*7);
 			}
@@ -70,7 +70,8 @@ public class TwoPhaseNRP {
 
 		
 		int m =0;
-		while(m<1) {
+		
+		while(m<10) {
 			instance.randomShiftAssign();
 			int currentDay = 0;	
 			while(currentDay < 27) {
@@ -81,7 +82,6 @@ public class TwoPhaseNRP {
 			m++;
 		}
 		//test randomShiftAssign 
-		
 		System.out.println("Shift assign completed.");
 		String[][] rosterPhase1 = instance.currentSolution.getRoster();
 		
@@ -741,9 +741,7 @@ public class TwoPhaseNRP {
 		this.numSkillTypes = schedulingPeriod.getSkills().size();
 		this.helper = new Helper(this.schedulingPeriod, new String[numNurses][numDays]);
 		this.numDays = helper.getDaysInPeriod();
-
 		this.dailyDemand = demand();
-
 	}
 
 }

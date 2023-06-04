@@ -74,9 +74,37 @@ public class ConstraintChecker {
         punishmentPoints += checkIdenticalShiftTypesDuringWeekend(employeeID);
         punishmentPoints += checkNoNightShiftBeforeFreeWeekend(employeeID);
         punishmentPoints += checkUnwantedPatternShift(employeeID);
+        punishmentPoints += alternativeSkillType(employeeID);
         
         return punishmentPoints;
     }
+    
+    private int alternativeSkillType(int employeeID) {
+    	List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
+        Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
+        Contract c = (Contract) schedulingPeriod.getContracts().get(e.getContractId());
+        List<Skill> nurseSkills = e.getSkills();
+        boolean headNurse = false;
+        if(nurseSkills.size() > 1) {
+        	headNurse = true;
+        }
+        
+        int punishmentPoints = 0;
+        //List<Shift> shifts = helper.getShiftList();
+    	List<Skill> skills = schedulingPeriod.getSkills();
+    	if(skills.size() > 1 && !headNurse) {
+    		for (int d = 0; d < workOnDayPeriode.size(); d++) {	
+    			if(roster[employeeID][d] != null) {
+	    			if(roster[employeeID][d].equals("DH")) {
+	    				punishmentPoints++;
+	    			}
+    			}
+    		}
+    	}
+    	
+    	return punishmentPoints*c.getAlternativeSkillCategory_weight();
+    }
+    
     
     private int checkMaxConsecutiveWorkingDays(int employeeID) {
     	List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
