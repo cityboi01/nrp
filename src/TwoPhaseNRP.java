@@ -475,9 +475,9 @@ public class TwoPhaseNRP {
 		
 		ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
 		int delta = 0;
-		for (int i = endRow; i != nonNullIndices.size(); i ++) {
+		for (int i = 0; i != nonNullIndices.size(); i ++) {
 			try {
-				int viosAfter = checker.calcViolationsPhase2(i);
+				int viosAfter = checker.calcViolationsPhase2(nonNullIndices.get(i));
 				delta += (viosAfter - this.currentSolution.getNurseScores()[i]);
 				this.currentSolution.setNurseScores(i, viosAfter);
 			}
