@@ -103,7 +103,7 @@ public class TwoPhaseNRP {
 		
 		int m = 0;
 		while(m<10) {
-			//instance.randomShiftAssign();
+			instance.randomShiftAssign();
 			int currentDay = 0;	
 			while(currentDay < instance.numDays - 1) {
 				instance.solveShiftAssignment(currentDay);
@@ -136,6 +136,7 @@ public class TwoPhaseNRP {
 
 	
 	public void solveShiftAssignment(int startDay) {
+		//TODO: change back!
 		Solution copySol = this.currentSolution.clone();
 		String[][] roster = copySol.getRoster();
 		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = shiftTypeCombinations(startDay);

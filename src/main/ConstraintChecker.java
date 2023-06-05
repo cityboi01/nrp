@@ -76,7 +76,7 @@ public class ConstraintChecker {
         punishmentPoints += checkUnwantedPatternShift(employeeID);
         punishmentPoints += alternativeSkillType(employeeID);
         
-        return checkIdenticalShiftTypesDuringWeekend(employeeID);
+        return punishmentPoints;
     }
     
     private int alternativeSkillType(int employeeID) {
