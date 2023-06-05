@@ -28,7 +28,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-		String fileName = "sprint01";
+		String fileName = "sprint02";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
 		instance.currentSolution = instance.getInitialSolution();
@@ -42,7 +42,7 @@ public class TwoPhaseNRP {
 		
 		//local search function call for Phase 1 LS goes here
 		for(int j=0; j<0; j++) {   
-			for(int i=0; i<28; i++) {
+			for(int i=0; i<instance.numDays; i++) {
 				instance.singleCutLS(i);
 			}
 			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
@@ -56,33 +56,23 @@ public class TwoPhaseNRP {
 //			}
 //		}
 		
-		instance.groupILS1(1000, 10, 0);
+		instance.groupILS1(0, 0, 0);
 		
 		
 		//Phase 1 weekly ILP optimization 
 		for(int j=0; j<2; j++) {
-			for(int i=0; i<4; i++) {
+			for(int i=0; i<instance.numDays/7; i++) {
 				instance.solveWorkRestAssignment(i*7);
 			}
 			System.out.println("Vios after ILP1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
 		}
 		System.out.println("Cost after Phase1: " + instance.currentSolution.getScore());
-
 		
-		int m =0;
-		
-		while(m<10) {
-			instance.randomShiftAssign();
-			int currentDay = 0;	
-			while(currentDay < 27) {
-				instance.solveShiftAssignment(currentDay);
-				currentDay += 3;
-			}
-			System.out.println(m);
-			m++;
-		}
+				
 		//test randomShiftAssign 
-		System.out.println("Shift assign completed.");
+		System.out.println("Work assign completed.");
+		
+		instance.randomShiftAssign();
 		String[][] rosterPhase1 = instance.currentSolution.getRoster();
 		
 		int cost = 0;
@@ -91,11 +81,53 @@ public class TwoPhaseNRP {
 			for(int d=0; d<rosterPhase1[0].length; d++) {
 				System.out.print(rosterPhase1[i][d] + "	");
 			}
-			cost += checker.calcViolationsPhase2(i);
 			System.out.println();
 		}
-		System.out.println(cost);
-        
+		
+
+		/*Solution copySol = instance.currentSolution.clone();
+		String[][] roster = copySol.getRoster();
+		ArrayList<ArrayList<Integer>> costs = instance.createMatrixCostsPhase2(roster, 0);
+		ArrayList<ArrayList<ArrayList<String>>> comb = instance.shiftTypeCombinations(0);
+
+		for(int n=0; n<instance.numNurses; n++) {
+			System.out.println("nurse " + n);
+			for(int i=0; i<costs.get(n).size(); i++) {
+				for(int d=0; d<3; d++) {
+					System.out.print(comb.get(n).get(i).get(d) + " ");
+				}
+				System.out.println(": " + costs.get(n).get(i) + " ");
+			}
+			System.out.println();
+		}*/
+		
+		int m = 0;
+		while(m<10) {
+			//instance.randomShiftAssign();
+			int currentDay = 0;	
+			while(currentDay < instance.numDays - 1) {
+				instance.solveShiftAssignment(currentDay);
+				currentDay += 3;
+			}
+			System.out.println(m);
+			m++;
+		}
+		
+		//test randomShiftAssign 
+		//instance.randomShiftAssign();
+		System.out.println("Shift assign completed.");
+		String[][] rosterPhase2 = instance.currentSolution.getRoster();
+		
+		cost = 0;
+		checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
+		for(int i=0; i<rosterPhase2.length; i++) {
+			for(int d=0; d<rosterPhase2[0].length; d++) {
+				System.out.print(rosterPhase2[i][d] + "	");
+			}
+			System.out.println();
+		}
+		
+		
 		for(int i=0; i<rosterPhase1.length; i++) {
 			System.out.println("Violations phase 2 nurse " + i + ":	" + checker.calcViolationsPhase2(i));
 		}
@@ -104,7 +136,8 @@ public class TwoPhaseNRP {
 
 	
 	public void solveShiftAssignment(int startDay) {
-		String[][] roster = this.currentSolution.getRoster();
+		Solution copySol = this.currentSolution.clone();
+		String[][] roster = copySol.getRoster();
 		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = shiftTypeCombinations(startDay);
 		ArrayList<ArrayList<Integer>> costs = createMatrixCostsPhase2(roster, startDay);
 		ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> createMatrixShiftType = createMatrixShiftType(roster, shiftTypeCombinations);
@@ -132,7 +165,7 @@ public class TwoPhaseNRP {
 
 			// add constraints
 
-			// constraint that ensures at least one work rest pattern is assigned per nurse
+			// constraint that ensures exactly one shift combination is assigned per nurse
 			for(int i=0; i < numNurses; i++){
 				IloLinearNumExpr expr1 = cplex.linearNumExpr();
 				for (int j = 0; j < shiftTypeCombinations.get(i).size(); j++){
@@ -609,10 +642,11 @@ public class TwoPhaseNRP {
 	public ArrayList<ArrayList<Integer>> createMatrixCostsPhase2(String[][] initialRoster, int startDay){
 		ArrayList<ArrayList<Integer>> costs = new ArrayList<ArrayList<Integer>>();
 		ArrayList<ArrayList<ArrayList<String>>> combinations = shiftTypeCombinations(startDay);
+		//String[][] newRoster = new String[this.numNurses][this.numDays];
 		
 		for(int i=0; i<numNurses; i++) {
 			ArrayList<Integer> list = new ArrayList<Integer>();
-			for(int j=0; j<combinations.get(i).size(); j++) {
+			for(int j=0; j<combinations.get(i).size(); j++) { 
 				for(int d=0; d<3; d++) {
 					initialRoster[i][startDay + d] = combinations.get(i).get(j).get(d);
 				}

@@ -76,7 +76,7 @@ public class ConstraintChecker {
         punishmentPoints += checkUnwantedPatternShift(employeeID);
         punishmentPoints += alternativeSkillType(employeeID);
         
-        return punishmentPoints;
+        return checkIdenticalShiftTypesDuringWeekend(employeeID);
     }
     
     private int alternativeSkillType(int employeeID) {
@@ -585,16 +585,23 @@ public class ConstraintChecker {
         int punishmentPoints = 0;
         
         List<Day> weekendDefinition = c.getWeekendDefinition();
+        Day trigger = weekendDefinition.get(0);
         if (c.isIdenticalShiftTypesDuringWeekend()) {
             for (int i = 0; i < workOnDayPeriode.size(); i++) {
                 Day currentDay = helper.getWeekDayOfPeriode(i);
-                if (weekendDefinition.contains(currentDay)) {
+                if (currentDay == trigger) {
                     String currentShift = roster[employeeID][i];
                     int indexOfWeekendDefinition = weekendDefinition.indexOf(currentDay);
+                    //System.out.println("day " + i);
+                    //System.out.println("current day : " + currentDay);
+                    //System.out.println("index of weekend definition: " + indexOfWeekendDefinition);
                     if (workOnDayPeriode.size() > i + weekendDefinition.size() - 1) {
-                        for (int k = 0; k < weekendDefinition.size() - indexOfWeekendDefinition; k++) {
+                        for (int k = 1; k < weekendDefinition.size(); k++) {
                             if (currentShift != roster[employeeID][k+i]) { 
-                                punishmentPoints++;
+                            	//System.out.println("day: " + i);
+                            	//System.out.println("violation current shift: " + currentShift + " other shift: " + roster[employeeID][k+i]);
+                            	punishmentPoints++;
+                                break;
                             }
                         }
                         i += weekendDefinition.size() - indexOfWeekendDefinition - 1;
@@ -603,7 +610,7 @@ public class ConstraintChecker {
                         for (int k = 0; k < workOnDayPeriode.size() - i; k++) {
                             if (workOnDayPeriode.get(i + k).get(employeeID) == 1) {
                                 if (!currentShift.equals(roster[employeeID][k+i])) {
-                                    punishmentPoints++;
+                                	punishmentPoints++;
                                 }
                             }
                         }
