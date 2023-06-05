@@ -28,7 +28,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-		String fileName = "sprint02";
+		String fileName = "toy1";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 		//initializing initial solution
 		instance.currentSolution = instance.getInitialSolution();
@@ -60,7 +60,7 @@ public class TwoPhaseNRP {
 		
 		
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<2; j++) {
+		for(int j=0; j<1; j++) {
 			for(int i=0; i<instance.numDays/7; i++) {
 				instance.solveWorkRestAssignment(i*7);
 			}
@@ -137,11 +137,13 @@ public class TwoPhaseNRP {
 	
 	public void solveShiftAssignment(int startDay) {
 		//TODO: change back!
+		String[][] roster = this.currentSolution.getRoster();
 		Solution copySol = this.currentSolution.clone();
-		String[][] roster = copySol.getRoster();
+		String[][] copyRoster = copySol.getRoster();
 		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = shiftTypeCombinations(startDay);
-		ArrayList<ArrayList<Integer>> costs = createMatrixCostsPhase2(roster, startDay);
-		ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> createMatrixShiftType = createMatrixShiftType(roster, shiftTypeCombinations);
+		ArrayList<ArrayList<ArrayList<ArrayList<Integer>>>> createMatrixShiftType = createMatrixShiftType(copyRoster, shiftTypeCombinations);
+		ArrayList<ArrayList<Integer>> costs = createMatrixCostsPhase2(copyRoster, startDay);
+		
 		List<Shift> shifts = this.helper.getShiftList();
 		
 		try {
@@ -199,6 +201,7 @@ public class TwoPhaseNRP {
 			this.currentSolution.setScore(0);
 			for(int i=0; i<numNurses; i++) {
 				for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {	
+					//System.out.print(cplex.getValue(shiftAssignment[i][j]) + " ");
 					if((cplex.getValue(shiftAssignment[i][j]) < 1 + 0.000011) && (cplex.getValue(shiftAssignment[i][j]) > 1 - 0.000011)) {
 						this.currentSolution.setNurseScores(i, costs.get(i).get(j));
 						this.currentSolution.setScore(this.currentSolution.getScore() + costs.get(i).get(j));
@@ -208,6 +211,7 @@ public class TwoPhaseNRP {
 						}
 					}
 				}
+				//System.out.println();
 			}
 
 			// close cplex object      
@@ -762,7 +766,12 @@ public class TwoPhaseNRP {
 			List<ArrayList<String>> combinations = perm.generatePermutations(shiftIDs, i);
 			listCombinations.add(combinations);
 		}
+		return this.distributeCombinations(startDay, listCombinations);
+	}
+	
+	public ArrayList<ArrayList<ArrayList<String>>> distributeCombinations (int startDay, ArrayList<List<ArrayList<String>>> listCombinations){
 		
+		int maxdays = 3;
 		
 		
 		ArrayList<ArrayList<ArrayList<String>>> shiftTypeCombinations = new ArrayList<ArrayList<ArrayList<String>>>();
@@ -779,7 +788,7 @@ public class TwoPhaseNRP {
 			for(int j=0; j<combinations.size(); j++) {
 				ArrayList<String> newList = new ArrayList<String>();
 				allCombinations.add(newList);
-				index = 0;
+				int index = 0;
 				for(int d=startDay; d < startDay + maxdays; d++) {
 					if(this.currentSolution.getRoster()[i][d] != null) {
 						String s = combinations.get(j).get(index);
