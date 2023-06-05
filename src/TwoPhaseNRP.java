@@ -85,7 +85,7 @@ public class TwoPhaseNRP {
 		}
 		
 
-		/*Solution copySol = instance.currentSolution.clone();
+		Solution copySol = instance.currentSolution.clone();
 		String[][] roster = copySol.getRoster();
 		ArrayList<ArrayList<Integer>> costs = instance.createMatrixCostsPhase2(roster, 0);
 		ArrayList<ArrayList<ArrayList<String>>> comb = instance.shiftTypeCombinations(0);
@@ -99,7 +99,7 @@ public class TwoPhaseNRP {
 				System.out.println(": " + costs.get(n).get(i) + " ");
 			}
 			System.out.println();
-		}*/
+		}
 		
 		int m = 0;
 		while(m<10) {

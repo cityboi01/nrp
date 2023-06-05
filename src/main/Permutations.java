@@ -7,9 +7,26 @@ import java.util.List;
 public class Permutations {
     public List<ArrayList<String>> generatePermutations(String[] strings, int k) {
     	String[] modStrings = substituteDH(strings);
+    	modStrings = repeatElements(modStrings);
         List<String> permutations = new ArrayList<>();
         backtrack(modStrings, new StringBuilder(), new boolean[modStrings.length], k, permutations);
         return splitAndResubstitutePermutations(permutations);
+    }
+    
+    public static String[] repeatElements(String[] originalArray) {
+        int originalLength = originalArray.length;
+        int newLength = originalLength * 3;
+        String[] repeatedArray = new String[newLength];
+        
+        for (int i = 0; i < originalLength; i++) {
+            String originalElement = originalArray[i];
+            for (int j = 0; j < 3; j++) {
+                int index = (i * 3) + j;
+                repeatedArray[index] = originalElement;
+            }
+        }
+        
+        return repeatedArray;
     }
     
     private String[] substituteDH(String[] strings) {
