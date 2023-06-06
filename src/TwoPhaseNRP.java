@@ -30,7 +30,7 @@ public class TwoPhaseNRP {
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-		String fileName = "sprint01";
+		String fileName = "sprint_hidden01";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
 
 		//parameters for ILP and single cut local search phase 1
@@ -43,11 +43,11 @@ public class TwoPhaseNRP {
 		int destroyDaysPhase1 = 0;			//0 corresponds to cycle shift and anything between 1 and 28 gives a new random solution for that number of days
 		
 		//parameters for ILP phase 2
-		int ILPiterPhase2 = 0;
+		int ILPiterPhase2 = 7;
 		
 		//parameters for ILS phase 2
-		int maxStagPhase2 = 500;
-		int maxOuterCountPhase2 = 3;
+		int maxStagPhase2 = 0;
+		int maxOuterCountPhase2 = 0;
 		int destroyDaysPhase2 = 0;
 		
 		int score = instance.optimizeNurseRoster(ILPiterPhase1, maxIterationsLSPhase1, ILPiterPhase2,
@@ -108,8 +108,10 @@ public class TwoPhaseNRP {
 		}
 	}
 
+	
 	public void ILPphase2(int maxIterations) {
 		int m = 0;
+		Solution best = this.currentSolution.clone();
 		while(m<maxIterations) {
 			this.randomShiftAssign();
 			int currentDay = 0;	
@@ -117,12 +119,14 @@ public class TwoPhaseNRP {
 				this.solveShiftAssignment(currentDay);
 				currentDay += 3;
 			}
+			if(this.currentSolution.getScore() < best.getScore()){
+				best = this.currentSolution.clone();
+			}
 			m++;
-			System.out.println("Cost ILP Phase2 iteration " + m + ": " + this.currentSolution.getScore());
+			System.out.println("Cost ILP Phase2 iteration " + m + ": " + best.getScore());
 		}
-		
+		this.currentSolution = best;
 	}
-	
 
 	
 	public void solveShiftAssignment(int startDay) {
