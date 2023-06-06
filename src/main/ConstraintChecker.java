@@ -578,6 +578,7 @@ public class ConstraintChecker {
         return counter;
     }
     
+    // changing != to !.equals
     private int checkIdenticalShiftTypesDuringWeekend(int employeeID) {
         List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
         Employee e = (Employee) schedulingPeriod.getEmployees().get(employeeID);
@@ -597,12 +598,19 @@ public class ConstraintChecker {
                     //System.out.println("index of weekend definition: " + indexOfWeekendDefinition);
                     if (workOnDayPeriode.size() > i + weekendDefinition.size() - 1) {
                         for (int k = 1; k < weekendDefinition.size(); k++) {
-                            if (currentShift != roster[employeeID][k+i]) { 
-                            	//System.out.println("day: " + i);
-                            	//System.out.println("violation current shift: " + currentShift + " other shift: " + roster[employeeID][k+i]);
-                            	punishmentPoints++;
-                                break;
-                            }
+                        	if(currentShift != null) {
+	                        	if (!currentShift.equals(roster[employeeID][k+i])) { 
+	                            	//System.out.println("day: " + i);
+	                            	//System.out.println("violation current shift: " + currentShift + " other shift: " + roster[employeeID][k+i]);
+	                            	punishmentPoints++;
+	                                break;
+	                            }
+                        	}
+//                        	else if(currentShift == null && roster[employeeID][k+i] != null) {
+//                        		punishmentPoints++;
+//                                break;
+//                        	}
+                        	
                         }
                         i += weekendDefinition.size() - indexOfWeekendDefinition - 1;
                     } else {

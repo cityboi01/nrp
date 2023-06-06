@@ -22,119 +22,107 @@ public class TwoPhaseNRP {
 	int numDays;
 	int[] dailyDemand;
 	int numSkillTypes;
+	Solution solutionPhase1;
 	Random random = new Random();
 	Solution currentSolution;
-
+	ArrayList<ArrayList<Integer>> previousRoster;
+	
 	public static void main(String argv[]) throws Exception {
 
 		//Read the XML file
-		String fileName = "toy1";
+		String fileName = "sprint01";
 		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
-		//initializing initial solution
-		instance.currentSolution = instance.getInitialSolution();
 
-		for(int i=0; i<instance.numNurses; i++) {
-        	for(int d=0; d<instance.numDays; d++) {
-        		System.out.print(instance.currentSolution.getRoster()[i][d] + "	");
-        	}
-        	System.out.println();
-		}
+		//parameters for ILP and single cut local search phase 1
+		int ILPiterPhase1 = 1;
+		int maxIterationsLSPhase1 = 0;
 		
-		//local search function call for Phase 1 LS goes here
-		for(int j=0; j<0; j++) {   
-			for(int i=0; i<instance.numDays; i++) {
-				instance.singleCutLS(i);
-			}
-			System.out.println("Vios after Cut1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
-		}
-//		int count = 0;
-//		while(count < 0) {
-//			count++;
-//			instance.groupSwapPhase1();
-//			if(count % 1000 == 0) {
-//				System.out.println("Vios after " + (count) + " GroupSwaps: " + instance.currentSolution.getScore());
-//			}
-//		}
+		//parameters for ILS phase 1
+		int maxStagPhase1 = 0;
+		int maxOuterCountPhase1 = 0;
+		int destroyDaysPhase1 = 0;			//0 corresponds to cycle shift and anything between 1 and 28 gives a new random solution for that number of days
 		
-		instance.groupILS1(0, 0, 0);
+		//parameters for ILP phase 2
+		int ILPiterPhase2 = 0;
 		
+		//parameters for ILS phase 2
+		int maxStagPhase2 = 500;
+		int maxOuterCountPhase2 = 3;
+		int destroyDaysPhase2 = 0;
+		
+		int score = instance.optimizeNurseRoster(ILPiterPhase1, maxIterationsLSPhase1, ILPiterPhase2,
+				maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, 
+				maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2);
+		
+		System.out.println(score);
+	}
+	
+	public int optimizeNurseRoster(int ILPiterPhase1, int maxIterationsLSPhase1, int ILPiterPhase2, int maxStagPhase1, int maxOuterCountPhase1, int destroyDaysPhase1, int maxStagPhase2, int maxOuterCountPhase2, int destroyDaysPhase2) throws Exception {
+		long startTimeOne = System.currentTimeMillis();
+		
+		optimizePhase1(ILPiterPhase1, maxIterationsLSPhase1, maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1);
+		this.solutionPhase1 = this.currentSolution.clone();
+		System.out.println("time for phase 1: " + (System.currentTimeMillis() - startTimeOne));
+		System.out.println();
+		
+		long startTimeTwo = System.currentTimeMillis();
+		optimizePhase2(ILPiterPhase2, maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2);
+		System.out.println("time for phase 2: " + (System.currentTimeMillis() - startTimeTwo));
+
+		int score = this.solutionPhase1.getScore() + this.currentSolution.getScore();
+		return score;
+	}
+	
+	public void optimizePhase1(int ILPiter, int maxIterationsLS, int maxStag, int maxOuterCount, int destroyDays) throws Exception {
+		ILPphase1(ILPiter, maxIterationsLS);
+		groupILS1(maxStag, maxOuterCount, destroyDays);
+		
+	}
+	
+	public void optimizePhase2(int ILPiter, int maxStag, int maxOuterCount, int destroyDays) {
+		randomShiftAssign();
+		ILPphase2(ILPiter);
+		groupILS2(maxStag, maxOuterCount, destroyDays);
+		
+	}
+	
+	public void ILPphase1(int maxIterationsILP, int maxIterationsLS) throws Exception {
+		//initializing initial solution
+		this.currentSolution = getInitialSolution();
 		
 		//Phase 1 weekly ILP optimization 
-		for(int j=0; j<1; j++) {
-			for(int i=0; i<instance.numDays/7; i++) {
-				instance.solveWorkRestAssignment(i*7);
+		for(int j=0; j<maxIterationsILP; j++) {
+			for(int i=0; i<this.numDays/7; i++) {
+				this.solveWorkRestAssignment(i*7);
 			}
-			System.out.println("Vios after ILP1 cycle " + (j+1) + ": " + instance.currentSolution.getScore());
+			System.out.println("Cost ILP Phase1 iteration " + j + ": " + this.currentSolution.getScore());
 		}
-		System.out.println("Cost after Phase1: " + instance.currentSolution.getScore());
+		//System.out.println("Cost after Phase1: " + this.currentSolution.getScore());
 		
-				
-		//test randomShiftAssign 
-		System.out.println("Work assign completed.");
-		
-		instance.randomShiftAssign();
-		
-		instance.groupILS2(1000, 5, 0);
-		String[][] rosterPhase1 = instance.currentSolution.getRoster();
-		
-		int cost = 0;
-		ConstraintChecker checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
-		for(int i=0; i<rosterPhase1.length; i++) {
-			for(int d=0; d<rosterPhase1[0].length; d++) {
-				System.out.print(rosterPhase1[i][d] + "	");
+		//local search function call for Phase 1 LS goes here
+		for(int j=0; j<maxIterationsLS; j++) {   
+			for(int i=0; i<this.numDays; i++) {
+				this.singleCutLS(i);
 			}
-			System.out.println();
+			System.out.println("Cost Single Cut LS Phase1 iteration " + j + ": " + this.currentSolution.getScore());
 		}
-		
+	}
 
-		Solution copySol = instance.currentSolution.clone();
-		String[][] roster = copySol.getRoster();
-		ArrayList<ArrayList<Integer>> costs = instance.createMatrixCostsPhase2(roster, 0);
-		ArrayList<ArrayList<ArrayList<String>>> comb = instance.shiftTypeCombinations(0);
-
-		for(int n=0; n<instance.numNurses; n++) {
-			System.out.println("nurse " + n);
-			for(int i=0; i<costs.get(n).size(); i++) {
-				for(int d=0; d<3; d++) {
-					System.out.print(comb.get(n).get(i).get(d) + " ");
-				}
-				System.out.println(": " + costs.get(n).get(i) + " ");
-			}
-			System.out.println();
-		}
-		
+	public void ILPphase2(int maxIterations) {
 		int m = 0;
-		while(m<10) {
-			instance.randomShiftAssign();
+		while(m<maxIterations) {
+			this.randomShiftAssign();
 			int currentDay = 0;	
-			while(currentDay < instance.numDays - 1) {
-				instance.solveShiftAssignment(currentDay);
+			while(currentDay < this.numDays - 1) {
+				this.solveShiftAssignment(currentDay);
 				currentDay += 3;
 			}
-			System.out.println(m);
 			m++;
-		}
-		
-		//test randomShiftAssign 
-		//instance.randomShiftAssign();
-		System.out.println("Shift assign completed.");
-		String[][] rosterPhase2 = instance.currentSolution.getRoster();
-		
-		cost = 0;
-		checker = new ConstraintChecker(instance.schedulingPeriod, rosterPhase1);
-		for(int i=0; i<rosterPhase2.length; i++) {
-			for(int d=0; d<rosterPhase2[0].length; d++) {
-				System.out.print(rosterPhase2[i][d] + "	");
-			}
-			System.out.println();
-		}
-		
-		
-		for(int i=0; i<rosterPhase1.length; i++) {
-			System.out.println("Violations phase 2 nurse " + i + ":	" + checker.calcViolationsPhase2(i));
+			System.out.println("Cost ILP Phase2 iteration " + m + ": " + this.currentSolution.getScore());
 		}
 		
 	}
+	
 
 	
 	public void solveShiftAssignment(int startDay) {
@@ -147,6 +135,15 @@ public class TwoPhaseNRP {
 		ArrayList<ArrayList<Integer>> costs = createMatrixCostsPhase2(copyRoster, startDay);
 		
 		List<Shift> shifts = this.helper.getShiftList();
+		
+//		System.out.println();
+//		System.out.println("Previous Roster at start day " + ": " + startDay);
+//		for(int i=0; i<this.numNurses; i++) {
+//			for(int d=0; d<this.numDays; d++) {
+//				System.out.print(this.currentSolution.getRoster()[i][d] + "	");
+//			}
+//			System.out.println();
+//		}
 		
 		try {
 			// define a new cplex object
@@ -197,14 +194,81 @@ public class TwoPhaseNRP {
 
 			// save optimal value
 			int minimumCost = (int) cplex.getObjValue();
-			System.out.println("Minimum cost " + minimumCost);
+			//System.out.println("Minimum cost " + minimumCost);
 
+//			int costPreviousSol = 0;
+//			if(startDay > 2) {	
+//				for(int i=0; i<numNurses; i++) {
+//					for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {	
+//						costPreviousSol += this.previousRoster.get(i).get(j) * costs.get(i).get(j);
+//					}
+//				}
+//			}
+//			
+//			System.out.println();
+//			System.out.println("Minimum cost previous solution with new costs" + costPreviousSol);
+			
+//			int[] costPerNursePrevious = new int[this.numNurses];
+//			ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
 
+//			for(int i=0; i<numNurses; i++) {
+//				String prevComb = "";
+//				for(int d=0; d<3; d++) {
+//					prevComb += roster[i][startDay + d];
+//				}
+//				for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {	
+//					//boolean thisCombination = true;
+//					
+//					String a = "";
+//					for(int d=0; d<3; d++) {
+//						a += shiftTypeCombinations.get(i).get(j).get(d);
+//					}
+//					
+//					if(prevComb.equals(a)) {
+//						costPerNursePrevious[i] = costs.get(i).get(j);
+//						String prevCombShift = "";
+//						for(int d=0; d<3; d++) {
+//							prevCombShift += shiftTypeCombinations.get(i).get(j).get(d);
+//						}
+//						System.out.println("Nurse " + i + " shift comb previous sol: " + prevCombShift);
+//					}
+//				}
+//			}
+			
+//			for(int i=0; i<numNurses; i++) {
+//				System.out.println("Cost previous sol given these costs nurse " + i + ": " + costPerNursePrevious[i]);
+//				try {
+//					System.out.println("Value constraintchecker " + checker.calcViolationsPhase2(i));
+//				} catch (Exception e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//			}
+			
+//			int nurse = -1;
+//			int pat = -1;
+//			String pattern = null;
+//			
 			this.currentSolution.setScore(0);
 			for(int i=0; i<numNurses; i++) {
+//				pattern = "";
+	
 				for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {	
+//					for(int d=0; d<3; d++) {
+//						System.out.print(shiftTypeCombinations.get(i).get(j).get(d));
+//					}
+//					System.out.print("	");
+//
+//					
 					//System.out.print(cplex.getValue(shiftAssignment[i][j]) + " ");
 					if((cplex.getValue(shiftAssignment[i][j]) < 1 + 0.000011) && (cplex.getValue(shiftAssignment[i][j]) > 1 - 0.000011)) {
+						//String pattern = null;
+//						for(int d=0; d<3; d++) {
+//							pattern += (shiftTypeCombinations.get(i).get(j).get(d));
+//						}
+//						nurse = i;
+//						pat = j;
+						
 						this.currentSolution.setNurseScores(i, costs.get(i).get(j));
 						this.currentSolution.setScore(this.currentSolution.getScore() + costs.get(i).get(j));
 						ArrayList<String> shiftAssign = shiftTypeCombinations.get(i).get(j);
@@ -214,8 +278,44 @@ public class TwoPhaseNRP {
 					}
 				}
 				//System.out.println();
+				
+				//System.out.println("Nurse " + nurse + " cost pattern  " + pattern + ": " + costs.get(nurse).get(pat));
+				//System.out.println();
 			}
+			
+//			for(int i=0; i<this.numNurses; i++) {
+//				for(int d=0; d<this.numDays; d++) {
+//					System.out.print(this.currentSolution.getRoster()[i][d] + "	");
+//				}
+//				System.out.println();
+//			}
+//			
+			//this.previousRoster = new ArrayList<ArrayList<Integer>>();
 
+//			for(int i=0; i<numNurses; i++) {
+//				ArrayList<Integer> solnurse = new ArrayList<Integer>();
+//				for(int j=0; j<shiftTypeCombinations.get(i).size(); j++) {	
+//					//solnurse.add((int) cplex.getValue(shiftAssignment[i][j]));
+//					System.out.print(cplex.getValue(shiftAssignment[i][j]) + "	");
+//				}
+//				//this.previousRoster.add(solnurse);
+//				System.out.println();
+//			}
+			
+//			checker = new ConstraintChecker(this.schedulingPeriod, roster);
+//			
+//			for(int i=0; i<numNurses; i++) {
+//				try {
+//					System.out.println("ILP Nurse " + i + " violations: " + checker.calcViolationsPhase2(i));
+//				} catch (Exception e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//			}
+//			
+//			
+//			System.out.println();
+			
 			// close cplex object      
 			cplex.close(); 	
 
@@ -226,7 +326,7 @@ public class TwoPhaseNRP {
 		
 	}
 	
-	public String[][] randomShiftAssign(){
+	public void randomShiftAssign(){
 		String[][] roster = this.currentSolution.getRoster();
 		int numColumns = roster[0].length;
 		int numShiftTypes = this.schedulingPeriod.getShiftTypes().size();
@@ -258,21 +358,35 @@ public class TwoPhaseNRP {
 				}
 			}
 		}
-
-		return roster;
+		
+		ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
+		int cost = 0;
+		for (int i = 0; i < this.numNurses; i ++) {
+			try {
+				int nurseCost = checker.calcViolationsPhase2(i);
+				cost += nurseCost;
+				this.currentSolution.setNurseScores(i, nurseCost);
+			}
+			catch(Exception e) {
+				System.out.println("Exception in perturb2, using new checker.calcVios raised.");
+			}
+		}
+		this.currentSolution.setScore(cost);
+		this.currentSolution.setRoster(roster);
 
 	}
 
 	
-	public void groupILS1(int maxInnerCount, int maxOuterCount, int destroyDays) {
+	public void groupILS1(int maxStag, int maxOuterCount, int destroyDays) {
 		int outerCount = 0;
 		Solution tempSolution = this.currentSolution.clone();
 		while(outerCount < maxOuterCount) {
-			int innerCount = 0;
+			int stagCount = 0;
 			outerCount ++;
-			while(innerCount < maxInnerCount) {
-				innerCount++;
-				this.groupSwapPhase1();
+			while(stagCount < maxStag) {
+				if(!this.groupSwapPhase1()) {
+					stagCount++;
+				}
 //				if(innerCount % 1000 == 0) {
 //					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
 //				}
@@ -281,7 +395,7 @@ public class TwoPhaseNRP {
 				this.currentSolution = tempSolution;
 			}
 //			System.out.println("Vios (temp) after ILS iteration: " + tempSolution.getScore());
-			System.out.println("Vios (current) after ILS iteration: " + this.currentSolution.getScore());
+			System.out.println("Cost after ILS1 iteration "+ outerCount + ": " + this.currentSolution.getScore());
 			tempSolution = this.currentSolution.clone();
 			this.perturb1(destroyDays);
 //			System.out.println("Vios after perturbation: " + this.currentSolution.getScore());
@@ -292,15 +406,16 @@ public class TwoPhaseNRP {
 		
 	}
 	
-	public void groupILS2(int maxInnerCount, int maxOuterCount, int destroyDays) {
+	public void groupILS2(int maxStag, int maxOuterCount, int destroyDays) {
 		int outerCount = 0;
 		Solution tempSolution = this.currentSolution.clone();
 		while(outerCount < maxOuterCount) {
-			int innerCount = 0;
+			int stagCount = 0;
 			outerCount ++;
-			while(innerCount < maxInnerCount) {
-				innerCount++;
-				this.groupSwapPhase2();
+			while(stagCount < maxStag) {
+				if(!this.groupSwapPhase2()) {
+					stagCount++;
+				}
 //				if(innerCount % 1000 == 0) {
 //					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
 //				}
@@ -309,7 +424,7 @@ public class TwoPhaseNRP {
 				this.currentSolution = tempSolution;
 			}
 //			System.out.println("Vios (temp) after ILS iteration: " + tempSolution.getScore());
-			System.out.println("Vios (current) after ILS iteration: " + this.currentSolution.getScore());
+			System.out.println("Cost after ILS2 iteration "+ outerCount + ": " + this.currentSolution.getScore());
 			tempSolution = this.currentSolution.clone();
 			this.perturb2(destroyDays);
 //			System.out.println("Vios after perturbation: " + this.currentSolution.getScore());
@@ -441,7 +556,6 @@ public class TwoPhaseNRP {
 			}
 		}
 		this.currentSolution.setScore(this.currentSolution.getScore() + delta);
-		this.currentSolution.setRoster(roster);
 		
 //		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column after cycleShift.");
 		
@@ -467,26 +581,31 @@ public class TwoPhaseNRP {
 			}
 		}
 		// Perform cycle swap within the selected range of rows of the chosen column
-		String temp = roster[nonNullIndices.get(0)][column];
-		for (int i = 0; i != nonNullIndices.size() - 1; i ++) {
-			roster[nonNullIndices.get(i)][column] = roster[nonNullIndices.get(i + 1)][column];
-		}
-		roster[nonNullIndices.get(nonNullIndices.size() - 1)][column] = temp;
-		
-		ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
-		int delta = 0;
-		for (int i = 0; i != nonNullIndices.size(); i ++) {
-			try {
-				int viosAfter = checker.calcViolationsPhase2(nonNullIndices.get(i));
-				delta += (viosAfter - this.currentSolution.getNurseScores()[i]);
-				this.currentSolution.setNurseScores(i, viosAfter);
+		if(!nonNullIndices.isEmpty()) {
+			String temp = roster[nonNullIndices.get(0)][column];
+			for (int i = 0; i != nonNullIndices.size() - 1; i ++) {
+				roster[nonNullIndices.get(i)][column] = roster[nonNullIndices.get(i + 1)][column];
 			}
-			catch(Exception e) {
-				System.out.println("Exception in cycleShiftPhase2, using new checker.calcVios raised.");
+			roster[nonNullIndices.get(nonNullIndices.size() - 1)][column] = temp;
+			
+			ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, roster);
+			int delta = 0;
+			for (int i = 0; i != nonNullIndices.size(); i ++) {
+				try {
+					int viosAfter = checker.calcViolationsPhase2(nonNullIndices.get(i));
+					delta += (viosAfter - this.currentSolution.getNurseScores()[i]);
+					this.currentSolution.setNurseScores(i, viosAfter);
+				}
+				catch(Exception e) {
+					System.out.println("Exception in cycleShiftPhase2, using new checker.calcVios raised.");
+				}
 			}
+			this.currentSolution.setScore(this.currentSolution.getScore() + delta);
+			
 		}
-		this.currentSolution.setScore(this.currentSolution.getScore() + delta);
-		this.currentSolution.setRoster(roster);
+		else {
+			this.cycleShiftPhase2();
+		}
 		
 //		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column after cycleShift.");
 		
@@ -503,7 +622,7 @@ public class TwoPhaseNRP {
     }
 	
 	
-	public void groupSwapPhase1(){
+	public boolean groupSwapPhase1(){
 		String[][] roster = this.currentSolution.getRoster();
 		// Select two random and non-equal rows
 		int nurse1 = this.random.nextInt(this.numNurses);
@@ -554,7 +673,10 @@ public class TwoPhaseNRP {
 			this.currentSolution.setScore(this.currentSolution.getScore() + delta);
 			this.currentSolution.setNurseScores(nurse1, vioNurse1After);
 			this.currentSolution.setNurseScores(nurse2, vioNurse2After);
-			return;
+			
+			if(delta < 0) {
+				return true;
+			}
 		}
 		//if not, undo changes and return old roster
 		else {
@@ -564,12 +686,12 @@ public class TwoPhaseNRP {
 				roster[nurse1][day] = roster[nurse2][day];
 				roster[nurse2][day] = temp;
 			}
+			
 		}
-		this.currentSolution.setRoster(roster);
-
+		return false;
 	}
 	
-	public void groupSwapPhase2(){
+	public boolean groupSwapPhase2(){
 		String[][] roster = this.currentSolution.getRoster();
 		// Select two random and non-equal rows
 		int nurse1 = this.random.nextInt(this.numNurses);
@@ -623,7 +745,11 @@ public class TwoPhaseNRP {
 			this.currentSolution.setScore(this.currentSolution.getScore() + delta);
 			this.currentSolution.setNurseScores(nurse1, vioNurse1After);
 			this.currentSolution.setNurseScores(nurse2, vioNurse2After);
-			return;
+			
+			if(delta < 0) {
+				return true;
+			}
+			
 		}
 		//if not, undo changes and return old roster
 		else {
@@ -636,10 +762,10 @@ public class TwoPhaseNRP {
 				}
 			}
 		}
-		this.currentSolution.setRoster(roster);
+		
+		return false;
 
 	}
-
 	
 	public void solveWorkRestAssignment(int startDay) {
 		String[][] roster = this.currentSolution.getRoster();
@@ -693,7 +819,7 @@ public class TwoPhaseNRP {
 
 			// save optimal value
 			int minimumCost = (int) cplex.getObjValue();
-			System.out.println("Minimum cost " + minimumCost);
+			//System.out.println("Minimum cost " + minimumCost);
 
 
 			this.currentSolution.setScore(0);
@@ -839,17 +965,40 @@ public class TwoPhaseNRP {
 	public ArrayList<ArrayList<Integer>> createMatrixCostsPhase2(String[][] initialRoster, int startDay){
 		ArrayList<ArrayList<Integer>> costs = new ArrayList<ArrayList<Integer>>();
 		ArrayList<ArrayList<ArrayList<String>>> combinations = shiftTypeCombinations(startDay);
-		//String[][] newRoster = new String[this.numNurses][this.numDays];
+		String[][] roster = this.currentSolution.getRoster();
 		
 		for(int i=0; i<numNurses; i++) {
 			ArrayList<Integer> list = new ArrayList<Integer>();
-			for(int j=0; j<combinations.get(i).size(); j++) { 
-				for(int d=0; d<3; d++) {
-					initialRoster[i][startDay + d] = combinations.get(i).get(j).get(d);
+			for(int j=0; j<combinations.get(i).size(); j++) {
+				String[][] newRoster = new String[this.numNurses][this.numDays];
+				for(int d=0; d<startDay; d++) {
+					newRoster[i][d] = roster[i][d];
 				}
-				ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, initialRoster);
+				
+				for(int d=startDay; d<(startDay+3); d++) {
+					newRoster[i][d] = combinations.get(i).get(j).get(d-startDay);
+
+				}
+				
+				for(int d=(startDay+3); d<this.numDays; d++) {
+					newRoster[i][d] = roster[i][d];
+				}
+				
+				ConstraintChecker constraintChecker = new ConstraintChecker(schedulingPeriod, newRoster);
 				try {
 					list.add(constraintChecker.calcViolationsPhase2(i));
+					
+//					for(int d=0; d<numDays; d++) {
+//						if(newRoster[i][d] == null) {
+//							System.out.print("-");
+//						}
+//						else {
+//							System.out.print(newRoster[i][d]);
+//						}
+//					}
+//					System.out.print("	" + constraintChecker.calcViolationsPhase2(i));
+//					System.out.println();
+					
 				} catch (Exception e) {
 					System.out.println("Exception in createMatrixCostsPhase2, using new checker.calcVios raised.");
 				}
@@ -1026,7 +1175,7 @@ public class TwoPhaseNRP {
 			numberViolations += nurseViolations[i];
 		}
 
-		System.out.println("violations: " + numberViolations);
+		//System.out.println("violations: " + numberViolations);
 
 		return new Solution(initialRoster, numberViolations, nurseViolations);
 	}
