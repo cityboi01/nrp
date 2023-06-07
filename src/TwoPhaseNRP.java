@@ -6,7 +6,10 @@ import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
 import main.*;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,32 +32,117 @@ public class TwoPhaseNRP {
 	
 	public static void main(String argv[]) throws Exception {
 
-		//Read the XML file
-		String fileName = "sprint_hidden01";
-		TwoPhaseNRP instance = new TwoPhaseNRP(fileName);	
+		
+		int[][] a1 = {{0, 4}, {1, 3}, {2, 1}, {3, 0}};
+		int[][] b1 = {{0,16}, {1,12}, {2,8}, {3,4}, {4,0}};
+		
+		String[] instances = {"Sprint01", "Sprint02", "Sprint03", "Sprint04" , "Sprint05" , "Sprint06", "Sprint07", "Sprint08", "Sprint09", "Sprint10",
+				"Sprint_late01", "Sprint_late02", "Sprint_late03", "Sprint_late04", "Sprint_late05", "Sprint_late06", "Sprint_late07", "Sprint_late08", "Sprint_late09", "Sprint_late10",
+				"Sprint_hidden01", "Sprint_hidden02", "Sprint_hidden03", "Sprint_hidden04", "Sprint_hidden05", "Sprint_hidden06", "Sprint_hidden07", "Sprint_hidden08", "Sprint_hidden09", "Sprint_hidden10",};
+		
+		boolean phase2 = true;
+		
+		
+		try {
+			File myObj = new File("tuningPhase2"); //new File("Instance_D_test_1min.txt");
+			if (myObj.createNewFile()) {
+				System.out.println("File created: " + myObj.getName());
+				FileWriter myWriter = new FileWriter("tuningPhase1"); //new FileWriter("Instance_D_test_1min.txt");
+				
+				//runs for each instance
+				for(int k=0; k<instances.length; k++) {
+					
+					//Read the XML file
+					String fileName = instances[k];
+					TwoPhaseNRP instance = new TwoPhaseNRP(fileName);
+					myWriter.write("instance = " + fileName + "\n");
+					
+					if(phase2) {
+						//runs the different parameter configurations
+						for(int i=0; i<b1.length; i++) {
+							myWriter.write("iterILP2 = " + b1[i][0] + ", maxOuterCount2 = " + b1[i][1] +"\n");
+		
+							//how many times we run the algorithm per parameter configurations
+							for(int j=0; j<5; j++) {
+							
+							//parameters for ILP and single cut local search phase 1
+							int ILPiterPhase1 = 3;
+							int maxIterationsLSPhase1 = 0;
+							
+							//parameters for ILS phase 1
+							int maxStagPhase1 = 0;
+							int maxOuterCountPhase1 = 0;
+							int destroyDaysPhase1 = 0;			//0 corresponds to cycle shift and anything between 1 and 28 gives a new random solution for that number of days
+							
+							//parameters for ILP phase 2
+							int ILPiterPhase2 = b1[i][0];
+							
+							//parameters for ILS phase 2
+							int maxStagPhase2 = 250;
+							int maxOuterCountPhase2 = b1[i][1];
+							int destroyDaysPhase2 = 0;
+							
+							int score = instance.optimizeNurseRoster(ILPiterPhase1, maxIterationsLSPhase1, ILPiterPhase2,
+									maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, 
+									maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2);
+							
+							myWriter.write(score +"\n");
+	
+							System.out.println(score);
+							}
+						}
+					}
+					
+					
+					else {
+						//runs the different parameter configurations
+						for(int i=0; i<a1.length; i++) {
+							myWriter.write("iterILP1 = " + a1[i][0] + ", maxOuterCount = " + a1[i][1] +"\n");
+		
+							//how many times we run the algorithm per parameter configurations
+							for(int j=0; j<5; j++) {
+							
+							//parameters for ILP and single cut local search phase 1
+							int ILPiterPhase1 = a1[i][0];
+							int maxIterationsLSPhase1 = 0;
+							
+							//parameters for ILS phase 1
+							int maxStagPhase1 = 1750;
+							int maxOuterCountPhase1 = a1[i][1];;
+							int destroyDaysPhase1 = 1;			//0 corresponds to cycle shift and anything between 1 and 28 gives a new random solution for that number of days
+							
+							//parameters for ILP phase 2
+							int ILPiterPhase2 = 3;
+							
+							//parameters for ILS phase 2
+							int maxStagPhase2 = 0;
+							int maxOuterCountPhase2 = 0;
+							int destroyDaysPhase2 = 0;
+							
+							int score = instance.optimizeNurseRoster(ILPiterPhase1, maxIterationsLSPhase1, ILPiterPhase2,
+									maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, 
+									maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2);
+							
+							myWriter.write(score +"\n");
+	
+							System.out.println(score);
+							}
+						}
+					}
+					
+					myWriter.write(" \n");
+				}
+				myWriter.close();
+				System.out.println("Successfully wrote to the file.");
+			}
+			else {
+				System.out.println("File already exists.");
+			}
 
-		//parameters for ILP and single cut local search phase 1
-		int ILPiterPhase1 = 1;
-		int maxIterationsLSPhase1 = 0;
-		
-		//parameters for ILS phase 1
-		int maxStagPhase1 = 0;
-		int maxOuterCountPhase1 = 0;
-		int destroyDaysPhase1 = 0;			//0 corresponds to cycle shift and anything between 1 and 28 gives a new random solution for that number of days
-		
-		//parameters for ILP phase 2
-		int ILPiterPhase2 = 7;
-		
-		//parameters for ILS phase 2
-		int maxStagPhase2 = 0;
-		int maxOuterCountPhase2 = 0;
-		int destroyDaysPhase2 = 0;
-		
-		int score = instance.optimizeNurseRoster(ILPiterPhase1, maxIterationsLSPhase1, ILPiterPhase2,
-				maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, 
-				maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2);
-		
-		System.out.println(score);
+		} catch (IOException io) {
+			System.out.println("An error occurred.");
+			io.printStackTrace();
+		}
 	}
 	
 	public int optimizeNurseRoster(int ILPiterPhase1, int maxIterationsLSPhase1, int ILPiterPhase2, int maxStagPhase1, int maxOuterCountPhase1, int destroyDaysPhase1, int maxStagPhase2, int maxOuterCountPhase2, int destroyDaysPhase2) throws Exception {
