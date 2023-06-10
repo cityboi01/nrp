@@ -1,0 +1,780 @@
+instance = Sprint01
+iterILP1 = 0, maxOuterCount = 4
+69
+65
+61
+67
+63
+iterILP1 = 1, maxOuterCount = 3
+60
+62
+66
+63
+60
+iterILP1 = 2, maxOuterCount = 1
+61
+59
+63
+59
+61
+iterILP1 = 3, maxOuterCount = 0
+59
+58
+62
+59
+59
+ 
+instance = Sprint02
+iterILP1 = 0, maxOuterCount = 4
+67
+62
+71
+64
+65
+iterILP1 = 1, maxOuterCount = 3
+64
+59
+60
+62
+62
+iterILP1 = 2, maxOuterCount = 1
+60
+62
+65
+62
+65
+iterILP1 = 3, maxOuterCount = 0
+61
+64
+59
+60
+61
+ 
+instance = Sprint03
+iterILP1 = 0, maxOuterCount = 4
+68
+60
+63
+54
+61
+iterILP1 = 1, maxOuterCount = 3
+58
+60
+53
+58
+59
+iterILP1 = 2, maxOuterCount = 1
+53
+60
+58
+54
+55
+iterILP1 = 3, maxOuterCount = 0
+52
+54
+55
+56
+54
+ 
+instance = Sprint04
+iterILP1 = 0, maxOuterCount = 4
+71
+72
+63
+65
+69
+iterILP1 = 1, maxOuterCount = 3
+63
+64
+60
+70
+70
+iterILP1 = 2, maxOuterCount = 1
+64
+67
+65
+63
+66
+iterILP1 = 3, maxOuterCount = 0
+67
+61
+62
+63
+63
+ 
+instance = Sprint05
+iterILP1 = 0, maxOuterCount = 4
+66
+62
+70
+64
+66
+iterILP1 = 1, maxOuterCount = 3
+61
+63
+58
+57
+63
+iterILP1 = 2, maxOuterCount = 1
+62
+59
+60
+61
+60
+iterILP1 = 3, maxOuterCount = 0
+59
+58
+58
+59
+58
+ 
+instance = Sprint06
+iterILP1 = 0, maxOuterCount = 4
+61
+59
+62
+57
+57
+iterILP1 = 1, maxOuterCount = 3
+59
+57
+53
+59
+52
+iterILP1 = 2, maxOuterCount = 1
+57
+58
+58
+59
+56
+iterILP1 = 3, maxOuterCount = 0
+55
+56
+55
+58
+55
+ 
+instance = Sprint07
+iterILP1 = 0, maxOuterCount = 4
+70
+64
+72
+62
+63
+iterILP1 = 1, maxOuterCount = 3
+56
+59
+57
+61
+57
+iterILP1 = 2, maxOuterCount = 1
+59
+63
+60
+58
+58
+iterILP1 = 3, maxOuterCount = 0
+60
+58
+59
+60
+58
+ 
+instance = Sprint08
+iterILP1 = 0, maxOuterCount = 4
+67
+63
+63
+66
+67
+iterILP1 = 1, maxOuterCount = 3
+56
+63
+58
+54
+61
+iterILP1 = 2, maxOuterCount = 1
+58
+57
+60
+59
+58
+iterILP1 = 3, maxOuterCount = 0
+58
+57
+59
+58
+58
+ 
+instance = Sprint09
+iterILP1 = 0, maxOuterCount = 4
+63
+66
+62
+63
+65
+iterILP1 = 1, maxOuterCount = 3
+58
+57
+64
+62
+63
+iterILP1 = 2, maxOuterCount = 1
+57
+59
+59
+60
+57
+iterILP1 = 3, maxOuterCount = 0
+59
+58
+58
+62
+59
+ 
+instance = Sprint10
+iterILP1 = 0, maxOuterCount = 4
+63
+66
+59
+61
+65
+iterILP1 = 1, maxOuterCount = 3
+61
+54
+57
+60
+58
+iterILP1 = 2, maxOuterCount = 1
+57
+56
+56
+58
+55
+iterILP1 = 3, maxOuterCount = 0
+53
+57
+54
+57
+52
+ 
+instance = Sprint_late01
+iterILP1 = 0, maxOuterCount = 4
+61
+56
+54
+54
+61
+iterILP1 = 1, maxOuterCount = 3
+44
+56
+48
+51
+50
+iterILP1 = 2, maxOuterCount = 1
+46
+47
+48
+51
+49
+iterILP1 = 3, maxOuterCount = 0
+51
+46
+49
+48
+41
+ 
+instance = Sprint_late02
+iterILP1 = 0, maxOuterCount = 4
+57
+60
+54
+54
+58
+iterILP1 = 1, maxOuterCount = 3
+49
+46
+51
+51
+52
+iterILP1 = 2, maxOuterCount = 1
+48
+55
+48
+49
+49
+iterILP1 = 3, maxOuterCount = 0
+47
+47
+48
+41
+48
+ 
+instance = Sprint_late03
+iterILP1 = 0, maxOuterCount = 4
+62
+61
+61
+69
+70
+iterILP1 = 1, maxOuterCount = 3
+58
+62
+57
+65
+61
+iterILP1 = 2, maxOuterCount = 1
+55
+57
+52
+57
+56
+iterILP1 = 3, maxOuterCount = 0
+55
+58
+57
+58
+59
+ 
+instance = Sprint_late04
+iterILP1 = 0, maxOuterCount = 4
+213
+149
+139
+228
+134
+iterILP1 = 1, maxOuterCount = 3
+166
+122
+140
+146
+113
+iterILP1 = 2, maxOuterCount = 1
+100
+120
+100
+101
+127
+iterILP1 = 3, maxOuterCount = 0
+113
+122
+136
+102
+140
+ 
+instance = Sprint_late05
+iterILP1 = 0, maxOuterCount = 4
+50
+56
+56
+56
+59
+iterILP1 = 1, maxOuterCount = 3
+51
+50
+53
+58
+59
+iterILP1 = 2, maxOuterCount = 1
+51
+47
+50
+51
+53
+iterILP1 = 3, maxOuterCount = 0
+47
+53
+51
+46
+45
+ 
+instance = Sprint_late06
+iterILP1 = 0, maxOuterCount = 4
+62
+54
+48
+56
+58
+iterILP1 = 1, maxOuterCount = 3
+50
+50
+45
+50
+48
+iterILP1 = 2, maxOuterCount = 1
+49
+46
+53
+49
+45
+iterILP1 = 3, maxOuterCount = 0
+43
+47
+45
+51
+46
+ 
+instance = Sprint_late07
+iterILP1 = 0, maxOuterCount = 4
+144
+124
+123
+176
+130
+iterILP1 = 1, maxOuterCount = 3
+59
+92
+64
+78
+85
+iterILP1 = 2, maxOuterCount = 1
+69
+65
+72
+72
+64
+iterILP1 = 3, maxOuterCount = 0
+82
+91
+55
+71
+74
+ 
+instance = Sprint_late08
+iterILP1 = 0, maxOuterCount = 4
+37
+48
+88
+31
+62
+iterILP1 = 1, maxOuterCount = 3
+52
+38
+48
+52
+21
+iterILP1 = 2, maxOuterCount = 1
+25
+29
+30
+24
+25
+iterILP1 = 3, maxOuterCount = 0
+27
+32
+24
+21
+28
+ 
+instance = Sprint_late09
+iterILP1 = 0, maxOuterCount = 4
+119
+66
+55
+121
+70
+iterILP1 = 1, maxOuterCount = 3
+47
+41
+71
+37
+58
+iterILP1 = 2, maxOuterCount = 1
+24
+44
+39
+20
+31
+iterILP1 = 3, maxOuterCount = 0
+28
+24
+27
+32
+24
+ 
+instance = Sprint_late10
+iterILP1 = 0, maxOuterCount = 4
+114
+158
+89
+149
+88
+iterILP1 = 1, maxOuterCount = 3
+129
+77
+70
+90
+74
+iterILP1 = 2, maxOuterCount = 1
+79
+68
+66
+76
+96
+iterILP1 = 3, maxOuterCount = 0
+83
+85
+70
+70
+68
+ 
+instance = Sprint_hidden01
+iterILP1 = 0, maxOuterCount = 4
+45
+55
+60
+53
+66
+iterILP1 = 1, maxOuterCount = 3
+49
+51
+45
+44
+46
+iterILP1 = 2, maxOuterCount = 1
+51
+45
+42
+43
+43
+iterILP1 = 3, maxOuterCount = 0
+47
+44
+44
+40
+36
+ 
+instance = Sprint_hidden02
+iterILP1 = 0, maxOuterCount = 4
+48
+51
+50
+56
+49
+iterILP1 = 1, maxOuterCount = 3
+40
+39
+40
+49
+47
+iterILP1 = 2, maxOuterCount = 1
+46
+36
+43
+37
+43
+iterILP1 = 3, maxOuterCount = 0
+40
+42
+41
+37
+48
+ 
+instance = Sprint_hidden03
+iterILP1 = 0, maxOuterCount = 4
+87
+80
+88
+87
+89
+iterILP1 = 1, maxOuterCount = 3
+81
+70
+76
+81
+80
+iterILP1 = 2, maxOuterCount = 1
+72
+71
+77
+73
+78
+iterILP1 = 3, maxOuterCount = 0
+79
+75
+70
+74
+69
+ 
+instance = Sprint_hidden04
+iterILP1 = 0, maxOuterCount = 4
+78
+84
+83
+78
+81
+iterILP1 = 1, maxOuterCount = 3
+78
+83
+73
+81
+72
+iterILP1 = 2, maxOuterCount = 1
+81
+77
+69
+76
+77
+iterILP1 = 3, maxOuterCount = 0
+73
+69
+77
+73
+76
+ 
+instance = Sprint_hidden05
+iterILP1 = 0, maxOuterCount = 4
+77
+81
+83
+82
+74
+iterILP1 = 1, maxOuterCount = 3
+74
+73
+70
+71
+76
+iterILP1 = 2, maxOuterCount = 1
+77
+65
+70
+71
+69
+iterILP1 = 3, maxOuterCount = 0
+77
+78
+72
+77
+70
+ 
+instance = Sprint_hidden06
+iterILP1 = 0, maxOuterCount = 4
+334
+321
+390
+364
+393
+iterILP1 = 1, maxOuterCount = 3
+297
+231
+289
+310
+331
+iterILP1 = 2, maxOuterCount = 1
+265
+276
+312
+289
+271
+iterILP1 = 3, maxOuterCount = 0
+253
+246
+283
+249
+233
+ 
+instance = Sprint_hidden07
+iterILP1 = 0, maxOuterCount = 4
+497
+544
+540
+559
+554
+iterILP1 = 1, maxOuterCount = 3
+449
+495
+456
+445
+495
+iterILP1 = 2, maxOuterCount = 1
+440
+479
+465
+474
+449
+iterILP1 = 3, maxOuterCount = 0
+435
+498
+481
+466
+416
+ 
+instance = Sprint_hidden08
+iterILP1 = 0, maxOuterCount = 4
+483
+504
+523
+495
+456
+iterILP1 = 1, maxOuterCount = 3
+416
+400
+415
+406
+423
+iterILP1 = 2, maxOuterCount = 1
+440
+397
+424
+378
+403
+iterILP1 = 3, maxOuterCount = 0
+397
+408
+408
+412
+410
+ 
+instance = Sprint_hidden09
+iterILP1 = 0, maxOuterCount = 4
+459
+466
+515
+505
+441
+iterILP1 = 1, maxOuterCount = 3
+412
+434
+446
+436
+441
+iterILP1 = 2, maxOuterCount = 1
+429
+409
+461
+415
+420
+iterILP1 = 3, maxOuterCount = 0
+454
+423
+424
+411
+426
+ 
+instance = Sprint_hidden10
+iterILP1 = 0, maxOuterCount = 4
+712
+534
+575
+506
+643
+iterILP1 = 1, maxOuterCount = 3
+462
+538
+514
+538
+504
+iterILP1 = 2, maxOuterCount = 1
+505
+458
+507
+501
+525
+iterILP1 = 3, maxOuterCount = 0
+545
+494
+469
+464
+464
+ 
