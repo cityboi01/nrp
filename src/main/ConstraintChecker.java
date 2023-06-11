@@ -304,7 +304,7 @@ public class ConstraintChecker {
         int countConsecutiveWorkAtWeekend = 0;
         int countWorkAtWeekend = 0;
        
-        boolean oldValue = false;
+        boolean oldValue = true;
         for (int i = 0; i < workOnDayPeriode.size(); i++) {
             Day currentDay = helper.getWeekDayOfPeriode(i);
             if (weekendDefinition.contains(currentDay)) {
@@ -346,7 +346,7 @@ public class ConstraintChecker {
         if (c.getMinConsecutiveWorkingWeekends_on() == 1 &&
                 countConsecutiveWorkAtWeekend < minConsecutiveWorkingWeekends) {
             punishmentPoints_minCon += (minConsecutiveWorkingWeekends - countConsecutiveWorkAtWeekend) *
-                    c.getMaxConsecutiveWorkingWeekends_weight();
+                    c.getMinConsecutiveWorkingWeekends_weight();
         }
         int maxWorkingWeekendsInFourWeeks = c.getMaxWorkingWeekendsInFourWeeks();
         if (c.getMaxWorkingWeekendsInFourWeeks_on() == 1 &&
@@ -355,13 +355,13 @@ public class ConstraintChecker {
                     c.getMaxWorkingWeekendsInFourWeeks_weight();
         }
         
-        /*System.out.println("Max consecutive " + maxConsecutiveWorkingWeekends);
-        System.out.println("Min consecutive " + minConsecutiveWorkingWeekends);
-        System.out.println("Max working " + maxWorkingWeekendsInFourWeeks);
-        System.out.println();
-        System.out.println("Max consecutive punishment points" + punishmentPoints_maxCon);
-        System.out.println("Min consecutive punishment points" + punishmentPoints_minCon);
-        System.out.println("Max working weekend punishment points" + punishmentPoints_maxWorkingWe);*/
+//        System.out.println("Max consecutive " + maxConsecutiveWorkingWeekends);
+//        System.out.println("Min consecutive " + minConsecutiveWorkingWeekends);
+//        System.out.println("Max working " + maxWorkingWeekendsInFourWeeks);
+//        System.out.println();
+//        System.out.println("Max consecutive punishment points" + punishmentPoints_maxCon);
+//        System.out.println("Min consecutive punishment points" + punishmentPoints_minCon);
+//        System.out.println("Max working weekend punishment points" + punishmentPoints_maxWorkingWe);
         
         return punishmentPoints_maxCon + punishmentPoints_minCon + punishmentPoints_maxWorkingWe;
     }

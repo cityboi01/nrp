@@ -34,7 +34,9 @@ public class TwoPhaseNRP {
 		TwoPhaseNRP instanceMain = new TwoPhaseNRP("Sprint01");
 		instanceMain.ILPphase1(0,0);
 		System.out.println(instanceMain.currentSolution.getScore());
-		instanceMain.groupILSCombi(2000, 20, 0);
+		instanceMain.randomShiftAssign();
+		instanceMain.groupILSCombi(1000, 5, 1);
+		
 		
 		int[][] a1 = {{0, 4}, {1, 3}, {2, 1}, {3, 0}};
 		int[][] b1 = {{0,16}, {1,12}, {2,8}, {3,4}, {4,0}};
@@ -476,7 +478,7 @@ public class TwoPhaseNRP {
 		int cost = 0;
 		try {
 			for(int i = 0; i < this.numNurses; i++) {
-				int nurseCost = this.currentSolution.getNurseScores()[i] + checker.calcViolationsPhase2(i);
+				int nurseCost = this.currentSolution.getNurseScores()[i] + checker.calcViolationsPhase1(i);
 				int auxNurseCost = checker.calcViolationsPhase1(i) + checker.calcViolationsPhase2(i);
 				if(nurseCost != auxNurseCost) {
 					System.out.println("Alarm");
@@ -500,6 +502,9 @@ public class TwoPhaseNRP {
 //				System.out.println("Hello");
 				if(!this.groupSwapCombi()) {
 					stagCount++;
+				}
+				else {
+					stagCount = 0;
 				}
 //				else {
 //					System.out.println(this.currentSolution.getScore());
@@ -572,6 +577,9 @@ public class TwoPhaseNRP {
 				if(!this.groupSwapPhase1()) {
 					stagCount++;
 				}
+				else {
+					stagCount = 0;
+				}
 //				if(innerCount % 1000 == 0) {
 //					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
 //				}
@@ -601,6 +609,9 @@ public class TwoPhaseNRP {
 				if(!this.groupSwapPhase2()) {
 					stagCount++;
 				}
+				else {
+					stagCount = 0;
+				}
 //				if(innerCount % 1000 == 0) {
 //					System.out.println("Vios after " + (innerCount) + " GroupSwaps: " + this.currentSolution.getScore());
 //				}
@@ -623,6 +634,16 @@ public class TwoPhaseNRP {
 	
 	//unfinished
 	public void perturbCombi(int destroyDays) {
+		System.out.println("Roster before perturbation with score of " + this.currentSolution.getScore() + ":\n");
+		for(int i = 0; i < this.numNurses; i++) {
+			for(int j = 0; j < this.numDays; j++) {
+				System.out.print(this.currentSolution.getRoster()[i][j] + "	");
+			}
+			System.out.println();
+		}
+		for(int i = 0; i < this.numNurses; i++) {
+			System.out.println("Nurse " + i + ": " + this.currentSolution.getNurseScores()[i]);
+		}
 		if(destroyDays == this.numDays) {
 			try {
 				this.currentSolution = this.getInitialSolution();
@@ -686,6 +707,16 @@ public class TwoPhaseNRP {
 			}
 			this.currentSolution.setScore(cost);
 			this.currentSolution.setRoster(randRoster);
+		}
+		System.out.println("Roster after perturbation with score of " + this.currentSolution.getScore() + ":\n");
+		for(int i = 0; i < this.numNurses; i++) {
+			for(int j = 0; j < this.numDays; j++) {
+				System.out.print(this.currentSolution.getRoster()[i][j] + "	");
+			}
+			System.out.println();
+		}
+		for(int i = 0; i < this.numNurses; i++) {
+			System.out.println("Nurse " + i + ": " + this.currentSolution.getNurseScores()[i]);
 		}
 	}
 	
@@ -785,10 +816,14 @@ public class TwoPhaseNRP {
 		int column = random.nextInt(roster[0].length); // Select random column
 		int startRow = random.nextInt(roster.length - 1); // Select random start row
 
+		System.out.println("Random day selected in cycleShiftPhase2 is " + column);
+		
 		// Find a different end row from the start row s.t. endRow > startRow
 		int endRow = random.nextInt(roster.length - (startRow +1)) + (startRow + 1);
 //		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
 
+		System.out.println("Start/End row: " + startRow + ", " + endRow);
+		
 		// Perform cycle swap within the selected range of rows of the chosen column
 		String temp = roster[endRow][column];
 		int increment = (startRow < endRow) ? -1 : 1;
@@ -820,7 +855,7 @@ public class TwoPhaseNRP {
 		Random random = this.random;
 		int column = random.nextInt(roster[0].length); // Select random column
 		int startRow = random.nextInt(roster.length - 1); // Select random start row
-
+		
 		// Find a different end row from the start row s.t. endRow > startRow
 		int endRow = random.nextInt(roster.length - (startRow +1)) + (startRow + 1);
 //		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
@@ -857,8 +892,10 @@ public class TwoPhaseNRP {
 		int column = random.nextInt(roster[0].length); // Select random column
 		int startRow = random.nextInt(roster.length - 1); // Select random start row
 
+
 		// Find a different end row from the start row s.t. endRow > startRow
 		int endRow = random.nextInt(roster.length - (startRow +1)) + (startRow + 1);
+		
 //		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
 		
 		int increment = (startRow < endRow) ? -1 : 1;
@@ -871,7 +908,7 @@ public class TwoPhaseNRP {
 			}
 		}
 		// Perform cycle swap within the selected range of rows of the chosen column
-		if(!nonNullIndices.isEmpty()) {
+		if(nonNullIndices.size() > 1) {
 			String temp = roster[nonNullIndices.get(0)][column];
 			for (int i = 0; i != nonNullIndices.size() - 1; i ++) {
 				roster[nonNullIndices.get(i)][column] = roster[nonNullIndices.get(i + 1)][column];
@@ -883,8 +920,8 @@ public class TwoPhaseNRP {
 			for (int i = 0; i != nonNullIndices.size(); i ++) {
 				try {
 					int viosAfter = checker.calcViolationsPhase2(nonNullIndices.get(i));
-					delta += (viosAfter - this.currentSolution.getNurseScores()[i]);
-					this.currentSolution.setNurseScores(i, viosAfter);
+					delta += (viosAfter - this.currentSolution.getNurseScores()[nonNullIndices.get(i)]);
+					this.currentSolution.setNurseScores(nonNullIndices.get(i), viosAfter);
 				}
 				catch(Exception e) {
 					System.out.println("Exception in cycleShiftPhase2, using new checker.calcVios raised.");
