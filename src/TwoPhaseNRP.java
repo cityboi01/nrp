@@ -1,10 +1,9 @@
-import Attributes.*;
+
 import ilog.concert.IloException;
 import ilog.concert.IloLinearNumExpr;
 import ilog.concert.IloNumVar;
 import ilog.concert.IloNumVarType;
 import ilog.cplex.IloCplex;
-import main.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -1649,7 +1648,7 @@ public class TwoPhaseNRP {
 		int[] dailyDemand = new int[numDays];
 
 		for(int d=0; d <numDays; d++) {
-			List<main.RequirementsForDay> requirementsForDay = this.helper.getRequirementsForDay(d);
+			List<RequirementsForDay> requirementsForDay = this.helper.getRequirementsForDay(d);
 			int numShiftTypes = requirementsForDay.size();
 			for(int t=0; t<numShiftTypes; t++) {
 				dailyDemand[d] += requirementsForDay.get(t).getDemand();

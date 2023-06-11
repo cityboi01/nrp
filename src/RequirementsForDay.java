@@ -1,4 +1,4 @@
-package Helper;
+
 
 public class RequirementsForDay {
     private int demand;

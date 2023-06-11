@@ -1,4 +1,4 @@
-package Attributes;
+
 
 public class PatternEntry {
     private int index;

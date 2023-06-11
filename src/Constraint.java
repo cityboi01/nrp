@@ -1,6 +1,5 @@
-package Helper;
 
-import Attributes.*;
+
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -9,9 +8,9 @@ import java.util.List;
 public class Constraint {
     private SchedulingPeriod schedulingPeriod;
     private Helper helper;
-    private List<int[][]> roster;
+    private String[][] roster;
 
-    public Constraint(SchedulingPeriod schedulingPeriod, List<int[][]> roster) {
+    public Constraint(SchedulingPeriod schedulingPeriod, String[][] roster) {
         this.schedulingPeriod = schedulingPeriod;
         this.roster = roster;
         helper = new Helper(this.schedulingPeriod, this.roster);
@@ -25,38 +24,35 @@ public class Constraint {
     public boolean checkHardConst() {
         List<Employee> employeeList = helper.getEmployeeList();
 
-        //Bedarf der Schichten erfüllt?
-        for (int i = 0; i < roster.size(); i++) {
-            for (int j = 0; j < roster.get(0).length; j++) {
-                List<RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(i);
-                int demandOnShift = 0;
-                for (int k = 0; k < employeeList.size(); k++) {
-                    demandOnShift += roster.get(i)[j][k];
-                    //Wenn Employee HeadNurse sein sollte, aber keine ist
-                    if (requirementsForDay.get(j).getShiftID().equals("DH")) {
-                        if (!employeeList.get(k).getSkills().contains(Skill.HEAD_NURSE)) {
-                            if (roster.get(i)[j][k] == 1) {
-                                return false;
-                            }
-                        }
-                    }
+        //Checks if the shift demand is met each day
+        for (int d = 0; d < roster[0].length; d++) {
+        	List<RequirementsForDay> requirementsForDay = helper.getRequirementsForDay(d);
+            int numShiftType = requirementsForDay.size();
+            
+            for(int t=0; t<numShiftType; t++) {
+            	String shiftID = requirementsForDay.get(t).getShiftID();
+            	
+            	int supplyOnShift = 0;
+            	for(int i=0; i< employeeList.size(); i++) {
+            		if(shiftID.equals("DH")) {
+            			if(roster[d][i].equals("DH")) {
+            				if(!employeeList.get(i).getSkills().contains(Skill.HEAD_NURSE)) {
+                				return false;
+                			}
+            				else {
+            					supplyOnShift++;
+            				}
+	            		}
+            		}
+            		else {
+	            		if(roster[d][i].equals(shiftID)) {
+	            			supplyOnShift++;
+	            		}
+            		}
                 }
-                //Wenn Bedarf der Schicht ungleich der Vorgabe ist
-                if (demandOnShift != requirementsForDay.get(j).getDemand()) {
-                    return false;
-                }
-            }
-        }
-        //Ein Employee nur eine Schicht am Tag?
-        for (int i = 0; i < roster.size(); i++) {
-            for (int k = 0; k < employeeList.size(); k++) {
-                int employeeWorkAtOneDay = 0;
-                for (int j = 0; j < roster.get(0).length; j++) {
-                    employeeWorkAtOneDay += roster.get(i)[j][k];
-                }
-                if (employeeWorkAtOneDay > 1) {
-                    return false;
-                }
+            	if(supplyOnShift < requirementsForDay.get(d).getDemand()) {
+            		return false;
+            	}	
             }
         }
         return true;
@@ -89,6 +85,21 @@ public class Constraint {
         return punishmentPoints;
     }
 
+    public int calcRosterScorePhaseOne() throws Exception {
+        int punishmentPoints = 0;
+        
+        punishmentPoints += checkNumbAssigment();
+        punishmentPoints += checkMaxConsecutiveWorkingDays();
+        punishmentPoints += checkMinConsecutiveWorkingDays();
+        punishmentPoints += checkMaxConsecutiveFreeDays();
+        punishmentPoints += checkMinConsecutiveFreeDays();
+        punishmentPoints += checkWeekendConstraints();
+        punishmentPoints += checkCompleteWeekends();
+        punishmentPoints += checkDayOffRequest();
+
+        return punishmentPoints;
+    }
+    
     /**
      * Prüft die aufeinanderfolgende Arbeitstage gegen die im Vertrag vereinbarte maximalgröße.
      * Annahme: Für jeden einzelnen Tag, wird ein weiterer Strafpunkt verteilt
@@ -478,7 +489,6 @@ public class Constraint {
         List<List<Integer>> workOnDayPeriode = helper.getWorkingList();
         List<Employee> employeeList = helper.getEmployeeList();
         List<Contract> contractList = helper.getContractList();
-        List<String> shiftWithIndices = helper.getShiftWithIndices();
         int punishmentPoints = 0;
         //für alle employee
         for (int j = 0; j < workOnDayPeriode.get(0).size(); j++) {
@@ -489,11 +499,10 @@ public class Constraint {
                 //für alle Tage
                 for (int i = 0; i < workOnDayPeriode.size(); i++) {
                     Day currentDay = helper.getWeekDayOfPeriode(i);
-                    int nightShiftIndex = shiftWithIndices.indexOf("N");
                     if (weekendDefinition.get(0) == currentDay &&
                             workOnDayPeriode.get(i).get(j) == 0 &&
                             i != 0 &&
-                            roster.get(i - 1)[nightShiftIndex][j] == 1) {
+                            roster[j][i-1].equals("N")){   //roster.get(i - 1)[nightShiftIndex][j] == 1) {
                         punishmentPoints++;
                     }
                 }
@@ -526,11 +535,11 @@ public class Constraint {
                 for (int i = 0; i < workOnDayPeriode.size(); i++) {
                     Day currentDay = helper.getWeekDayOfPeriode(i);
                     if (weekendDefinition.contains(currentDay)) {
-                        String currentShift = helper.getShiftOfDay(i, j);
+                        String currentShift = roster[j][i];//helper.getShiftOfDay(i, j);
                         int indexOfWeekendDefinition = weekendDefinition.indexOf(currentDay);
                         if (workOnDayPeriode.size() > i + weekendDefinition.size() - 1) {
                             for (int k = 0; k < weekendDefinition.size() - indexOfWeekendDefinition; k++) {
-                                if (!currentShift.equals(helper.getShiftOfDay(k + i, j))) {
+                                if (!currentShift.equals(roster[j][k+i])) { //(helper.getShiftOfDay(k + i, j))) {
                                     punishmentPoints++;
                                 }
                             }
@@ -539,7 +548,7 @@ public class Constraint {
                             // Wenn nicht mehr in Periode
                             for (int k = 0; k < workOnDayPeriode.size() - i; k++) {
                                 if (workOnDayPeriode.get(i + k).get(j) == 1) {
-                                    if (!currentShift.equals(helper.getShiftOfDay(k + i, j))) {
+                                    if (!currentShift.equals(roster[j][k+i])) { //helper.getShiftOfDay(k + i, j))) {
                                         punishmentPoints++;
                                     }
                                 }
@@ -560,13 +569,12 @@ public class Constraint {
      */
     private int checkShiftOffRequest() {
         List<ShiftOff> shiftOff = helper.getShiftOffRequestList();
-        List<String> shiftWithIndices = helper.getShiftWithIndices();
         int counter = 0;
         for (ShiftOff s : shiftOff) {
             int dayNumber = helper.getDaysFromStart(s.getDate()) - 1;
-            int index = shiftWithIndices.indexOf(s.getShiftTypeId());
-            int workShiftToday = roster.get(dayNumber)[index][s.getEmployeeId()];
-            if (workShiftToday == 1) {
+            String shift = s.getShiftTypeId(); //int index = shiftWithIndices.indexOf(s.getShiftTypeId());
+            String workShiftToday = roster[s.getEmployeeId()][dayNumber];
+            if (shift.equals(workShiftToday)) {
                 counter += s.getWeight();
             }
         }
@@ -602,13 +610,9 @@ public class Constraint {
      * @throws Exception
      */
     private int worksToday(int employeeId, int dayNumber) throws Exception {
-        int[][] j = roster.get(dayNumber);
-        int worksToday = 0;
-        for (int i = 0; i < roster.get(dayNumber).length; i++) {
-            worksToday += j[i][employeeId];
-        }
-        if (worksToday > 1) {
-            throw new Exception("Verstoß gegen harte Restriktion...");
+    	int worksToday = 0;
+    	if(roster[employeeId][dayNumber] != null) {
+    		worksToday = 1;
         }
         return worksToday;
     }
@@ -623,16 +627,19 @@ public class Constraint {
 
         //List: numbOfShiftInPeriod Number of Workingdays per Nurse per Period
         int employeeSize = helper.getEmployeeList().size();
-        int shiftSize = helper.getShiftList().size();
         List<Integer> numbOfShiftInPeriod = new ArrayList<>(Collections.nCopies(employeeSize, 0));
-        for (int[][] aSolution : roster) {
-            for (int k = 0; k < shiftSize; k++) {
-                for (int l = 0; l < employeeSize; l++) {
-                    int temp = numbOfShiftInPeriod.get(l) + aSolution[k][l];
-                    numbOfShiftInPeriod.set(l, temp);
-                }
-            }
-        }
+        
+    
+    	for (int i = 0; i < employeeSize; i++) {
+    		int temp = 0;
+    		for(int d=0; d<roster[0].length; d++) {
+    			if(roster[i][d] != null) {
+    				temp++;
+    			}
+    		}
+    		numbOfShiftInPeriod.set(i, temp);
+    	}
+        
         //Liste der Mitarbeiter mit der Differenz (Restriktionsverstoß) TODO: evtl. umbenennen
         List<Integer> numbOfDiffDays = new ArrayList<>();
         for (int i = 0; i < numbOfShiftInPeriod.size(); i++) {
@@ -678,7 +685,7 @@ public class Constraint {
 
             //für alle Tage
             for (int i = 0; i < workOnDayPeriode.size(); i++) {
-                String shift = helper.getShiftOfDay(i, j);
+                String shift = roster[j][i]; //helper.getShiftOfDay(i, j);
                 Day day = helper.getWeekDayOfPeriode(i);
                 for (int k : unwantedPatterns) {
                     boolean pattern_ok = false;
@@ -690,7 +697,7 @@ public class Constraint {
                         for (int l = 1; l < patternEntry.size(); l++) {
                             if (!(i + unwantedPatterns.size() - 1 >= workOnDayPeriode.size())) {
                                 PatternEntry currentEntry = patternEntry.get(l);
-                                String shift2 = helper.getShiftOfDay(i + l, j);
+                                String shift2 = roster[j][i+l]; //helper.getShiftOfDay(i + l, j);
                                 Day day2 = helper.getWeekDayOfPeriode(i + l);
                                 if (((currentEntry.getShiftType().equals("Any")&& shift2 != "None") || currentEntry.getShiftType().equals(shift2)) &&
                                         (currentEntry.getDay() == Day.Any || currentEntry.getDay() == day2)) {
