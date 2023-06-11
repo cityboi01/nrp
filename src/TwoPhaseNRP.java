@@ -34,22 +34,31 @@ public class TwoPhaseNRP {
 	boolean interrupted = false;
 
 	public static void main(String args[]) throws Exception {
-		TwoPhaseNRP instanceMain = new TwoPhaseNRP("Sprint01");
-		int ILPiterPhase1 = 1;
-		int maxIterationsLSPhase1 = 0;
-		int ILPiterPhase2 = 0;
-		int maxStagPhase1 = 0;
-		int maxOuterCountPhase1 = 0;
-		int destroyDaysPhase1 = 0;
-		int maxStagPhase2 = 0;
-		int maxOuterCountPhase2 = 0;
-		int destroyDaysPhase2 = 0;
-		int maxStagCombi1 = 1000;
-		int maxOuterCountCombi1 = 10;
-		int destroyDaysCombi1 = 0;
-		int maxStagCombi2 = 0;
-		int maxOuterCountCombi2 = 0;
-		int destroyDaysCombi2 = 0;
+		String filename = extractInstanceName(args[3]);
+//		System.out.println(filename);
+		TwoPhaseNRP instanceMain = new TwoPhaseNRP(filename);
+		
+		int ILPiterPhase1 = Integer.parseInt(args[4]);
+		int maxIterationsLSPhase1 = Integer.parseInt(args[5]);
+		
+		int maxStagPhase1 = Integer.parseInt(args[6]);
+		int maxOuterCountPhase1 = Integer.parseInt(args[7]);
+		int destroyDaysPhase1 = Integer.parseInt(args[8]);
+		
+		int maxStagCombi1 = Integer.parseInt(args[9]);
+		int maxOuterCountCombi1 = Integer.parseInt(args[10]);
+		int destroyDaysCombi1 = Integer.parseInt(args[11]);
+		
+		int ILPiterPhase2 = Integer.parseInt(args[12]);
+		
+		int maxStagPhase2 = Integer.parseInt(args[13]);
+		int maxOuterCountPhase2 = Integer.parseInt(args[14]);
+		int destroyDaysPhase2 = Integer.parseInt(args[15]);
+		
+		int maxStagCombi2 = Integer.parseInt(args[16]);
+		int maxOuterCountCombi2 = Integer.parseInt(args[17]);
+		int destroyDaysCombi2 = Integer.parseInt(args[18]);
+		
 		instanceMain.timeLimit = 10 * 1000;
 
 
@@ -188,6 +197,16 @@ public class TwoPhaseNRP {
 		
 //		System.out.println(instanceMain.endTime - instanceMain.startTime);
 	}
+	
+	public static String extractInstanceName(String filePath) {
+		String[] pathSegments = filePath.split("/");
+		String fileName = pathSegments[pathSegments.length - 1];
+		int dotIndex = fileName.lastIndexOf('.');
+		if (dotIndex != -1) {
+			fileName = fileName.substring(0, dotIndex);
+		}
+		return fileName;
+	}
 
 	public int checkTimeAndcomputeResult(String[][] roster) {
 		int cost = -1;
@@ -225,7 +244,7 @@ public class TwoPhaseNRP {
 //		System.out.println("time for phase 1: " + (System.currentTimeMillis() - this.startTime));
 //		System.out.println();
 
-		long startTimeTwo = System.currentTimeMillis();
+
 		optimizePhase2(ILPiterPhase2, maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2, maxStagCombi2, maxOuterCountCombi2, destroyDaysCombi2);
 //		System.out.println("time for phase 2: " + (System.currentTimeMillis() - startTimeTwo));
 
