@@ -31,39 +31,39 @@ public class TwoPhaseNRP {
 	long startTime;
 	long endTime = -1;
 	long timeLimit;
+	long phase1TimeLimit;
 	boolean interrupted = false;
 
 	public static void main(String args[]) throws Exception {
 		String filename = extractInstanceName(args[3]);
-//		System.out.println(filename);
+		//		System.out.println(filename);
 		TwoPhaseNRP instanceMain = new TwoPhaseNRP(filename);
-		
+
 		int ILPiterPhase1 = Integer.parseInt(args[4]);
 		int maxIterationsLSPhase1 = Integer.parseInt(args[5]);
-		
+
 		int maxStagPhase1 = Integer.parseInt(args[6]);
 		int maxOuterCountPhase1 = Integer.parseInt(args[7]);
 		int destroyDaysPhase1 = Integer.parseInt(args[8]);
+
+
+		int ILPiterPhase2 = Integer.parseInt(args[9]);
+
+		int maxStagPhase2 = Integer.parseInt(args[10]);
+		int maxOuterCountPhase2 = Integer.parseInt(args[11]);
+		int destroyDaysPhase2 = Integer.parseInt(args[12]);
+
+		int maxStagCombi2 = Integer.parseInt(args[13]);
+		int maxOuterCountCombi2 = Integer.parseInt(args[14]);
+		int destroyDaysCombi2 = Integer.parseInt(args[15]);
 		
-		int maxStagCombi1 = Integer.parseInt(args[9]);
-		int maxOuterCountCombi1 = Integer.parseInt(args[10]);
-		int destroyDaysCombi1 = Integer.parseInt(args[11]);
-		
-		int ILPiterPhase2 = Integer.parseInt(args[12]);
-		
-		int maxStagPhase2 = Integer.parseInt(args[13]);
-		int maxOuterCountPhase2 = Integer.parseInt(args[14]);
-		int destroyDaysPhase2 = Integer.parseInt(args[15]);
-		
-		int maxStagCombi2 = Integer.parseInt(args[16]);
-		int maxOuterCountCombi2 = Integer.parseInt(args[17]);
-		int destroyDaysCombi2 = Integer.parseInt(args[18]);
-		
-		instanceMain.timeLimit = 10 * 1000;
+		instanceMain.phase1TimeLimit = Integer.parseInt(args[16]) * 1000;
+
+		instanceMain.timeLimit = Integer.parseInt(args[17]) * 1000;
 
 
 		instanceMain.optimizeNurseRoster(ILPiterPhase1, maxIterationsLSPhase1, ILPiterPhase2,
-				maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2, maxStagCombi1, maxOuterCountCombi1, destroyDaysCombi1, maxStagCombi2, maxOuterCountCombi2, destroyDaysCombi2);
+				maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2, maxStagCombi2, maxOuterCountCombi2, destroyDaysCombi2);
 		//		instanceMain.ILPphase1(0,0);
 		//		System.out.println(instanceMain.currentSolution.getScore());
 		//		instanceMain.randomShiftAssign();
@@ -194,10 +194,10 @@ public class TwoPhaseNRP {
 		//			System.out.println("An error occurred.");
 		//			io.printStackTrace();
 		//		}
-		
-//		System.out.println(instanceMain.endTime - instanceMain.startTime);
+
+		//		System.out.println(instanceMain.endTime - instanceMain.startTime);
 	}
-	
+
 	public static String extractInstanceName(String filePath) {
 		String[] pathSegments = filePath.split("/");
 		String fileName = pathSegments[pathSegments.length - 1];
@@ -208,45 +208,45 @@ public class TwoPhaseNRP {
 		return fileName;
 	}
 
-	public int checkTimeAndcomputeResult(String[][] roster) {
+	public int computeResult(String[][] roster) {
 		int cost = -1;
-		if(System.currentTimeMillis() > this.startTime + this.timeLimit) {
-			boolean isFirst = false;
-			if(this.endTime == -1) {
-				this.endTime = System.currentTimeMillis();
-				this.interrupted = true;
-				isFirst = true;
+
+		boolean isFirst = false;
+		if(this.endTime == -1) {
+			this.endTime = System.currentTimeMillis();
+			this.interrupted = true;
+			isFirst = true;
+			//				System.out.println("Is interrupted first time");
+		}
+		ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, this.currentSolution.getRoster());
+		cost = 0;
+		try {
+			for(int i = 0; i < this.numNurses; i++) {
+				int nurseCost = checker.calcViolationsPhase1(i) + checker.calcViolationsPhase2(i);
+				cost += nurseCost;
 			}
-			ConstraintChecker checker = new ConstraintChecker(this.schedulingPeriod, this.currentSolution.getRoster());
-			cost = 0;
-			try {
-				for(int i = 0; i < this.numNurses; i++) {
-					int nurseCost = checker.calcViolationsPhase1(i) + checker.calcViolationsPhase2(i);
-					cost += nurseCost;
-				}
-			}
-			catch(Exception e) {
-				System.out.println("Checker exception in groupILSCombi");
-			}
-			if(isFirst) {
-				System.out.println(cost);
-			}
+		}
+		catch(Exception e) {
+			System.out.println("Checker exception in groupILSCombi");
+		}
+		if(isFirst) {
+			System.out.println(cost);
 		}
 
 		return cost;
 	}
 
-	public int optimizeNurseRoster(int ILPiterPhase1, int maxIterationsLSPhase1, int ILPiterPhase2, int maxStagPhase1, int maxOuterCountPhase1, int destroyDaysPhase1, int maxStagPhase2, int maxOuterCountPhase2, int destroyDaysPhase2, int maxStagCombi1, int maxOuterCountCombi1, int destroyDaysCombi1, int maxStagCombi2, int maxOuterCountCombi2, int destroyDaysCombi2) throws Exception {
+	public int optimizeNurseRoster(int ILPiterPhase1, int maxIterationsLSPhase1, int ILPiterPhase2, int maxStagPhase1, int maxOuterCountPhase1, int destroyDaysPhase1, int maxStagPhase2, int maxOuterCountPhase2, int destroyDaysPhase2, int maxStagCombi2, int maxOuterCountCombi2, int destroyDaysCombi2) throws Exception {
 		this.startTime = System.currentTimeMillis();
 
-		optimizePhase1(ILPiterPhase1, maxIterationsLSPhase1, maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1, maxStagCombi1, maxOuterCountCombi1, destroyDaysCombi1);
+		optimizePhase1(ILPiterPhase1, maxIterationsLSPhase1, maxStagPhase1, maxOuterCountPhase1, destroyDaysPhase1);
 		this.solutionPhase1 = this.currentSolution.clone();
-//		System.out.println("time for phase 1: " + (System.currentTimeMillis() - this.startTime));
-//		System.out.println();
+		//		System.out.println("time for phase 1: " + (System.currentTimeMillis() - this.startTime));
+		//		System.out.println();
 
 
 		optimizePhase2(ILPiterPhase2, maxStagPhase2, maxOuterCountPhase2, destroyDaysPhase2, maxStagCombi2, maxOuterCountCombi2, destroyDaysCombi2);
-//		System.out.println("time for phase 2: " + (System.currentTimeMillis() - startTimeTwo));
+		//		System.out.println("time for phase 2: " + (System.currentTimeMillis() - startTimeTwo));
 
 		int score = this.currentSolution.getScore();
 		if(!this.interrupted) {
@@ -255,14 +255,13 @@ public class TwoPhaseNRP {
 		return score;
 	}
 
-	public void optimizePhase1(int ILPiter, int maxIterationsLS, int maxStag, int maxOuterCount, int destroyDays, int maxStagCombi, int maxOuterCountCombi, int destroyDaysCombi) throws Exception {
+	public void optimizePhase1(int ILPiter, int maxIterationsLS, int maxStag, int maxOuterCount, int destroyDays) throws Exception {
 		ILPphase1(ILPiter, maxIterationsLS);
 		groupILS1(maxStag, maxOuterCount, destroyDays);
-		randomShiftAssign();
-		groupILSCombi(maxStagCombi, maxOuterCountCombi, destroyDaysCombi, true);
 	}
 
 	public void optimizePhase2(int ILPiter, int maxStag, int maxOuterCount, int destroyDays, int maxStagCombi, int maxOuterCountCombi, int destroyDaysCombi) {
+		randomShiftAssign();
 		ILPphase2(ILPiter);
 		groupILS2(maxStag, maxOuterCount, destroyDays);
 		groupILSCombi(maxStagCombi, maxOuterCountCombi, destroyDaysCombi, false);
@@ -274,10 +273,13 @@ public class TwoPhaseNRP {
 
 		//Phase 1 weekly ILP optimization 
 		for(int j=0; j<maxIterationsILP; j++) {
+			if(System.currentTimeMillis() > this.startTime + this.phase1TimeLimit) {
+				return;
+			}
 			for(int i=0; i<this.numDays/7; i++) {
 				this.solveWorkRestAssignment(i*7);
 			}
-//			System.out.println("Cost ILP Phase1 iteration " + j + ": " + this.currentSolution.getScore());
+			//			System.out.println("Cost ILP Phase1 iteration " + j + ": " + this.currentSolution.getScore());
 		}
 		//System.out.println("Cost after Phase1: " + this.currentSolution.getScore());
 
@@ -286,7 +288,7 @@ public class TwoPhaseNRP {
 			for(int i=0; i<this.numDays; i++) {
 				this.singleCutLS(i);
 			}
-			System.out.println("Cost Single Cut LS Phase1 iteration " + j + ": " + this.currentSolution.getScore());
+			//			System.out.println("Cost Single Cut LS Phase1 iteration " + j + ": " + this.currentSolution.getScore());
 		}
 	}
 
@@ -295,8 +297,8 @@ public class TwoPhaseNRP {
 		int m = 0;
 		Solution best = this.currentSolution.clone();
 		while(m<maxIterations) {
-			int timeCheck = this.checkTimeAndcomputeResult(best.getRoster());
-			if(timeCheck != -1) {
+			if(System.currentTimeMillis() > this.startTime + this.timeLimit) {
+				this.computeResult(best.getRoster());
 				return;
 			}
 			this.randomShiftAssign();
@@ -309,7 +311,7 @@ public class TwoPhaseNRP {
 				best = this.currentSolution.clone();
 			}
 			m++;
-			System.out.println("Cost ILP Phase2 iteration " + m + ": " + best.getScore());
+			//			System.out.println("Cost ILP Phase2 iteration " + m + ": " + best.getScore());
 		}
 		this.currentSolution = best;
 	}
@@ -586,16 +588,20 @@ public class TwoPhaseNRP {
 		this.currentSolution.setScore(cost);
 		int outerCount = 0;
 		Solution tempSolution = this.currentSolution.clone();
-		while(outerCount < maxOuterCount) {
-			int timeCheck = this.checkTimeAndcomputeResult(tempSolution.getRoster());
-			if(timeCheck != -1) {
-				return;
-			}
-//			System.out.println("Vios before ILS iter: " + this.currentSolution.getScore());
+		while(maxStag > 0 && outerCount < maxOuterCount) {
+		
+			//			System.out.println("Vios before ILS iter: " + this.currentSolution.getScore());
 			int stagCount = 0;
 			outerCount ++;
 
 			while(stagCount < maxStag) {
+				if(System.currentTimeMillis() > this.startTime + this.timeLimit) {
+					if(tempSolution.getScore() < currentSolution.getScore()) {
+						this.currentSolution = tempSolution;
+					}
+					this.computeResult(this.currentSolution.getRoster());
+					return;
+				}
 				//				System.out.println("Hello");
 				if(!this.groupSwapCombi()) {
 					stagCount++;
@@ -625,13 +631,13 @@ public class TwoPhaseNRP {
 			}
 
 
-//			System.out.println("Cost after ILSCombi iteration "+ outerCount + " before if: " + this.currentSolution.getScore());
+			//			System.out.println("Cost after ILSCombi iteration "+ outerCount + " before if: " + this.currentSolution.getScore());
 
 			if(tempSolution.getScore() <= currentSolution.getScore()) {
 				this.currentSolution = tempSolution;
 			}
 			//			System.out.println("Vios (temp) after ILS iteration: " + tempSolution.getScore());
-//			System.out.println("Cost after ILSCombi iteration "+ outerCount + ": " + this.currentSolution.getScore());
+			//			System.out.println("Cost after ILSCombi iteration "+ outerCount + ": " + this.currentSolution.getScore());
 			tempSolution = this.currentSolution.clone();
 			this.perturbCombi(destroyDays);
 
@@ -654,7 +660,7 @@ public class TwoPhaseNRP {
 			//			}
 
 
-//			System.out.println("After perurb: " + this.currentSolution.getScore());
+			//			System.out.println("After perurb: " + this.currentSolution.getScore());
 			//			System.out.println("Vios after perturbation: " + this.currentSolution.getScore());
 		}
 		if(tempSolution.getScore() < currentSolution.getScore()) {
@@ -684,10 +690,16 @@ public class TwoPhaseNRP {
 	public void groupILS1(int maxStag, int maxOuterCount, int destroyDays) {
 		int outerCount = 0;
 		Solution tempSolution = this.currentSolution.clone();
-		while(outerCount < maxOuterCount) {
+		while(maxStag > 0 && outerCount < maxOuterCount) {
 			int stagCount = 0;
 			outerCount ++;
 			while(stagCount < maxStag) {
+				if(System.currentTimeMillis() > this.startTime + this.phase1TimeLimit) {
+					if(tempSolution.getScore() < currentSolution.getScore()) {
+						this.currentSolution = tempSolution.clone();
+					}
+					return;
+				}
 				if(!this.groupSwapPhase1()) {
 					stagCount++;
 				}
@@ -702,7 +714,7 @@ public class TwoPhaseNRP {
 				this.currentSolution = tempSolution;
 			}
 			//			System.out.println("Vios (temp) after ILS iteration: " + tempSolution.getScore());
-			System.out.println("Cost after ILS1 iteration "+ outerCount + ": " + this.currentSolution.getScore());
+			//			System.out.println("Cost after ILS1 iteration "+ outerCount + ": " + this.currentSolution.getScore());
 			tempSolution = this.currentSolution.clone();
 			this.perturb1(destroyDays);
 			//			System.out.println("Vios after perturbation: " + this.currentSolution.getScore());
@@ -716,14 +728,18 @@ public class TwoPhaseNRP {
 	public void groupILS2(int maxStag, int maxOuterCount, int destroyDays) {
 		int outerCount = 0;
 		Solution tempSolution = this.currentSolution.clone();
-		while(outerCount < maxOuterCount) {
-			int timeCheck = this.checkTimeAndcomputeResult(tempSolution.getRoster());
-			if(timeCheck != -1) {
-				return;
-			}
+		while(maxStag > 0 && outerCount < maxOuterCount) {
+			
 			int stagCount = 0;
 			outerCount ++;
 			while(stagCount < maxStag) {
+				if(System.currentTimeMillis() > this.startTime + this.timeLimit) {
+					if(tempSolution.getScore() < currentSolution.getScore()) {
+						this.currentSolution = tempSolution;
+					}
+					this.computeResult(this.currentSolution.getRoster());
+					return;
+				}
 				if(!this.groupSwapPhase2()) {
 					stagCount++;
 				}
@@ -738,7 +754,7 @@ public class TwoPhaseNRP {
 				this.currentSolution = tempSolution;
 			}
 			//			System.out.println("Vios (temp) after ILS iteration: " + tempSolution.getScore());
-			System.out.println("Cost after ILS2 iteration "+ outerCount + ": " + this.currentSolution.getScore());
+			//			System.out.println("Cost after ILS2 iteration "+ outerCount + ": " + this.currentSolution.getScore());
 			tempSolution = this.currentSolution.clone();
 			this.perturb2(destroyDays);
 			//			System.out.println("Vios after perturbation: " + this.currentSolution.getScore());
@@ -752,16 +768,16 @@ public class TwoPhaseNRP {
 
 	//unfinished
 	public void perturbCombi(int destroyDays) {
-//		System.out.println("Roster before perturbation with score of " + this.currentSolution.getScore() + ":\n");
-//		for(int i = 0; i < this.numNurses; i++) {
-//			for(int j = 0; j < this.numDays; j++) {
-//				System.out.print(this.currentSolution.getRoster()[i][j] + "	");
-//			}
-//			System.out.println();
-//		}
-//		for(int i = 0; i < this.numNurses; i++) {
-//			System.out.println("Nurse " + i + ": " + this.currentSolution.getNurseScores()[i]);
-//		}
+		//		System.out.println("Roster before perturbation with score of " + this.currentSolution.getScore() + ":\n");
+		//		for(int i = 0; i < this.numNurses; i++) {
+		//			for(int j = 0; j < this.numDays; j++) {
+		//				System.out.print(this.currentSolution.getRoster()[i][j] + "	");
+		//			}
+		//			System.out.println();
+		//		}
+		//		for(int i = 0; i < this.numNurses; i++) {
+		//			System.out.println("Nurse " + i + ": " + this.currentSolution.getNurseScores()[i]);
+		//		}
 		if(destroyDays == this.numDays) {
 			try {
 				this.currentSolution = this.getInitialSolution();
@@ -773,7 +789,7 @@ public class TwoPhaseNRP {
 				}
 				this.randomShiftAssign();
 				this.currentSolution.setScore(auxScore + this.currentSolution.getScore());
-				System.out.println(this.currentSolution.getScore());
+				//				System.out.println(this.currentSolution.getScore());
 				for(int i = 0; i < this.numNurses; i++) {
 					this.currentSolution.setNurseScores(i, auxNurseScores[i] + this.currentSolution.getNurseScores()[i]);
 				}
@@ -826,16 +842,16 @@ public class TwoPhaseNRP {
 			this.currentSolution.setScore(cost);
 			this.currentSolution.setRoster(randRoster);
 		}
-//		System.out.println("Roster after perturbation with score of " + this.currentSolution.getScore() + ":\n");
-//		for(int i = 0; i < this.numNurses; i++) {
-//			for(int j = 0; j < this.numDays; j++) {
-//				System.out.print(this.currentSolution.getRoster()[i][j] + "	");
-//			}
-//			System.out.println();
-//		}
-//		for(int i = 0; i < this.numNurses; i++) {
-//			System.out.println("Nurse " + i + ": " + this.currentSolution.getNurseScores()[i]);
-//		}
+		//		System.out.println("Roster after perturbation with score of " + this.currentSolution.getScore() + ":\n");
+		//		for(int i = 0; i < this.numNurses; i++) {
+		//			for(int j = 0; j < this.numDays; j++) {
+		//				System.out.print(this.currentSolution.getRoster()[i][j] + "	");
+		//			}
+		//			System.out.println();
+		//		}
+		//		for(int i = 0; i < this.numNurses; i++) {
+		//			System.out.println("Nurse " + i + ": " + this.currentSolution.getNurseScores()[i]);
+		//		}
 	}
 
 	public void perturb1(int destroyDays) {
@@ -934,13 +950,13 @@ public class TwoPhaseNRP {
 		int column = random.nextInt(roster[0].length); // Select random column
 		int startRow = random.nextInt(roster.length - 1); // Select random start row
 
-//		System.out.println("Random day selected in cycleShiftPhase2 is " + column);
+		//		System.out.println("Random day selected in cycleShiftPhase2 is " + column);
 
 		// Find a different end row from the start row s.t. endRow > startRow
 		int endRow = random.nextInt(roster.length - (startRow +1)) + (startRow + 1);
 		//		System.out.println("Null occurs " + countNullOccurrences(roster, column) + " times in affected column before cycleShift.");
 
-//		System.out.println("Start/End row: " + startRow + ", " + endRow);
+		//		System.out.println("Start/End row: " + startRow + ", " + endRow);
 
 		// Perform cycle swap within the selected range of rows of the chosen column
 		String temp = roster[endRow][column];
@@ -1415,7 +1431,7 @@ public class TwoPhaseNRP {
 
 			// save optimal value
 			int minimumCost = (int) cplex.getObjValue();
-			System.out.println("New cost " + minimumCost);
+			//			System.out.println("New cost " + minimumCost);
 
 			this.currentSolution.setScore(0);
 			for(int i=0; i<numNurses; i++) {
